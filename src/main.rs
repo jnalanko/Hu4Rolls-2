@@ -1,6 +1,7 @@
 use poker::{cards, Card, EvalClass, Evaluator, Rank};
 use std::io::BufRead;
 use std::cmp::max as max; 
+use std::cmp::min as min;
 
 #[derive(Debug)]
 enum Position{
@@ -22,9 +23,18 @@ enum Action{
     Fold,
     Check,
     Call,
-    Bet(u64),
+    Bet(u64), // Bet *to*, not *by*
     Raise(u64), // Raise *to*, not *by*
     Deal(DealerAction),
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+enum ActionOption{
+    Fold,
+    Check,
+    Call,
+    Bet(u64,u64), // Min bet, max bet. Bet *to*, not *by*
+    Raise(u64,u64), // Min bet, max bet. Raise *to*, not *by*
 }
 
 struct Hand{
@@ -62,7 +72,7 @@ impl Hand{
 
     // Returns the valid actions for the player in turn.
     // For bets, raises, and allins, return the minimum and maximum amounts.
-    fn get_available_actions(&self) -> Vec<Action>{
+    fn get_available_actions(&self) -> Vec<ActionOption>{
         let (street_action_index, street) = self.hand_history.iter().enumerate().rev().find(
             |&(_, &x)| match x{
                 Action::Deal(_) => true,
@@ -118,22 +128,27 @@ impl Hand{
             };
         }
 
+        let active_player_stack = match active_player{
+            Position::Button => self.btn_stack,
+            Position::BigBlind => self.bb_stack,
+        };
+
         // Figure out valid actions
-        let mut valid_actions =Vec::<Action>::new();
+        let mut valid_actions =Vec::<ActionOption>::new();
 
         // We can always fold if it's our turn to act
-        valid_actions.push(Action::Fold);
+        valid_actions.push(ActionOption::Fold);
 
         // Can we bet?
         if btn_added_chips == 0 && bb_added_chips == 0{
             // Bet must be possible if no chips have been added yet and the hand has not ended yet
-            valid_actions.push(Action::Bet(minimum_raise_size.unwrap())); // Minimum bet
-            valid_actions.push(Action::Bet(max(self.btn_stack, self.bb_stack))); // Maximum bet
+            let minbet = minimum_raise_size.unwrap();
+            valid_actions.push(ActionOption::Bet(minbet, active_player_stack));
         }
 
         // Can we call?
         if btn_added_chips != bb_added_chips{
-            valid_actions.push(Action::Call);
+            valid_actions.push(ActionOption::Call);
         }
 
         // Can we raise?
@@ -144,8 +159,7 @@ impl Hand{
                         Position::Button => self.btn_stack,
                         Position::BigBlind => self.bb_stack,
                     };
-                    valid_actions.push(Action::Raise(minimum_raise_size)); // Minimum raise
-                    valid_actions.push(Action::Raise(active_player_stack)); // Maximum raise
+                    valid_actions.push(ActionOption::Raise(minimum_raise_size, active_player_stack));
                 },
                 None => () // No raise possible
             }
@@ -154,7 +168,7 @@ impl Hand{
         // Can we check?
         if btn_added_chips + bb_added_chips == 0 || btn_added_chips != bb_added_chips{
             // Equal amount of added bets and raises -> check is possible
-            valid_actions.push(Action::Check);
+            valid_actions.push(ActionOption::Check);
         }
         
         valid_actions
@@ -269,8 +283,8 @@ fn play() {
         }
         println!();
 
-        let actions = hand.get_available_actions();
-        dbg!(&actions);
+        let options = hand.get_available_actions();
+        dbg!(&options);
         let input = stdin.lock().lines().next().unwrap().unwrap();
         let tokens = input.split_whitespace().collect::<Vec<&str>>();
         let user_action =
@@ -296,15 +310,11 @@ fn play() {
         };
 
         if let Some(action) = user_action{
-            // Check if the action is valid
-            if actions.contains(&action){
-                hand.submit_action(action);
-            } else{
-                println!("Action invalid according to the rules");
-            }
-        } else{
+            hand.submit_action(action); // TODO: validate
+        } else {
             println!("Invalid action");
         }
+
         dbg!(&hand.hand_history);
     }
 }
