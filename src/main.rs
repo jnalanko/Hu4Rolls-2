@@ -46,6 +46,9 @@ struct Hand{
 
     sb_size: u64,
 
+    btn_start_stack: u64, // Stack at the start of the hand
+    bb_start_stack: u64, // Stack at the start of the hand
+
     btn_stack: u64, // Remaining stack after all action in the hand so far
     bb_stack: u64, // Remaining stack after all action in the hand so far
     pot: u64,
@@ -64,7 +67,17 @@ impl Hand{
         let pot = sb_size * 3;
         let hand_history = Vec::<Action>::new();
 
-        let mut hand = Hand{btn_hole_cards, bb_hole_cards, board_cards, deck, sb_size, btn_stack, bb_stack, pot, hand_history};
+        let mut hand = 
+            Hand{btn_hole_cards, 
+                bb_hole_cards, 
+                board_cards, 
+                deck, 
+                sb_size, 
+                btn_start_stack: btn_stack, 
+                btn_stack, 
+                bb_start_stack: bb_stack,
+                bb_stack, 
+                pot, hand_history};
 
         hand.submit_action(Action::Deal(DealerAction::Start));
         hand.submit_action(Action::Bet(sb_size)); // Small blind
@@ -255,7 +268,11 @@ impl Hand{
         // Recompute stacks and the pot
         let mut cur_street_button_total: u64 = 0;
         let mut cur_street_bb_total: u64 = 0;
+        // Reset pot and stacks to the initial state
         self.pot = 0;
+        self.btn_stack = self.btn_start_stack;
+        self.bb_stack = self.bb_start_stack;
+
         let mut active_player = Position::Button;
         for action in &self.hand_history{
             println!("Processing action: {:?}", action);
