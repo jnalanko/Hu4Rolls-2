@@ -188,6 +188,15 @@ impl Hand{
             _ => panic!("Invalid street"),
         };
 
+        if street_actions.len() % 2 == 0{
+            // If the number of actions is even, the active player is the one who is not the active player.
+            // (because the first action is the dealer action).
+            active_player = match active_player{
+                Position::Button => Position::BigBlind,
+                Position::BigBlind => Position::Button,
+            };
+        }
+
         active_player
     }
 
@@ -228,7 +237,11 @@ impl Hand{
             self.hand_history.push(action);
             match action{
                 Action::Fold => self.deal_next_step(),
-                Action::Check => self.deal_next_step(),
+                Action::Check => {
+                    if self.hand_history.len() >= 2 && self.hand_history[self.hand_history.len() - 2] == Action::Check{
+                        self.deal_next_step();
+                    }
+                },
                 Action::Call => self.deal_next_step(),
                 _ => ()
             }
