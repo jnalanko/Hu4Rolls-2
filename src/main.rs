@@ -2,6 +2,7 @@ use poker::{cards, Card, EvalClass, Evaluator, Rank};
 use std::io::BufRead;
 use std::cmp::max as max; 
 
+#[derive(Debug)]
 enum Position{
     Button,
     BigBlind,
@@ -81,7 +82,7 @@ impl Hand{
         let mut btn_added_chips: u64 = 0;
         let mut bb_added_chips: u64 = 0;
 
-        let mut minimum_raise_size: Option<u64> = None; // Minimum raise *to*, not by
+        let mut minimum_raise_size: Option<u64> = Some(self.sb_size*2); // Minimum raise *to*, not by
 
         for action in street_actions{
             let to_call = (btn_added_chips as i64 - bb_added_chips as i64).abs() as u64; // |btn_added_chips - bb_added_chips|
@@ -126,7 +127,8 @@ impl Hand{
         // Can we bet?
         if btn_added_chips == 0 && bb_added_chips == 0{
             // Bet must be possible if no chips have been added yet and the hand has not ended yet
-            valid_actions.push(Action::Bet(minimum_raise_size.unwrap()));
+            valid_actions.push(Action::Bet(minimum_raise_size.unwrap())); // Minimum bet
+            valid_actions.push(Action::Bet(max(self.btn_stack, self.bb_stack))); // Maximum bet
         }
 
         // Can we call?
@@ -150,7 +152,7 @@ impl Hand{
         } 
         
         // Can we check?
-        if btn_added_chips != bb_added_chips{
+        if btn_added_chips + bb_added_chips == 0 || btn_added_chips != bb_added_chips{
             // Equal amount of added bets and raises -> check is possible
             valid_actions.push(Action::Check);
         }
@@ -167,6 +169,26 @@ impl Hand{
             Action::Raise(amount) => amount > 0,
             Action::Deal(_) => true,
         }
+    }
+
+    // Todo: repeated code with get_available_actions
+    fn get_active_player(&self) -> Position{
+        let (street_action_index, street) = self.hand_history.iter().enumerate().rev().find(
+            |&(_, &x)| match x{
+                Action::Deal(_) => true,
+                _ => false,
+            }
+        ).unwrap();
+
+        let street_actions = &self.hand_history[street_action_index.. ];
+
+        let mut active_player = match street{
+            Action::Deal(DealerAction::Start) => Position::Button,
+            Action::Deal(_) => Position::BigBlind,
+            _ => panic!("Invalid street"),
+        };
+
+        active_player
     }
 
     fn deal_next_step(&mut self){
@@ -225,9 +247,15 @@ fn play() {
     let deck: Vec<Card> = Card::generate_shuffled_deck().to_vec();
     let mut hand = Hand::new(deck, 1000, 1000, 5);
     while !hand.finished(){
-        println!("Button has: {:?}", hand.btn_hole_cards);
-        println!("BB has: {:?}", hand.bb_hole_cards);
-        println!("Board: {:?}", hand.board_cards);
+        println!("Button has: {} {}", hand.btn_hole_cards.0.to_string(), hand.btn_hole_cards.1.to_string());
+        println!("BB has: {} {}", hand.bb_hole_cards.0.to_string(), hand.bb_hole_cards.1.to_string());
+        print!("Board: ");
+        println!("Action is on: {:?}", hand.get_active_player());
+        for card in &hand.board_cards{
+            print!("{} ", card.to_string());
+        }
+        println!();
+
         let actions = hand.get_available_actions();
         dbg!(&actions);
         let input = stdin.lock().lines().next().unwrap().unwrap();
