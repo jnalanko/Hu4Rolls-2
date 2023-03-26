@@ -1,13 +1,13 @@
 use poker::{cards, Card, EvalClass, Evaluator, Rank};
 use std::io::BufRead;
-use std::cmp::max;
+use std::cmp::max as max; 
 
 enum Position{
     Button,
     BigBlind,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum DealerAction{
     Start,
     Flop,
@@ -16,7 +16,7 @@ enum DealerAction{
     Showdown
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum Action{
     Fold,
     Check,
@@ -81,10 +81,11 @@ impl Hand{
         let mut btn_added_chips: u64 = 0;
         let mut bb_added_chips: u64 = 0;
 
-        let mut minimum_raise_size: Option<u64> = None;
+        let mut minimum_raise_size: Option<u64> = None; // Minimum raise *to*, not by
 
         for action in street_actions{
             let to_call = (btn_added_chips as i64 - bb_added_chips as i64).abs() as u64; // |btn_added_chips - bb_added_chips|
+            let bigger_added_chips_before_action = max(btn_added_chips, bb_added_chips);
 
             // Get a reference to the added chips of the active player
             let active_player_added_chips = match active_player{
@@ -97,13 +98,14 @@ impl Hand{
                 Action::Check => (),
                 Action::Call => *active_player_added_chips += to_call,
                 Action::Bet(amount) => {
-                    minimum_raise_size = Some(*amount);
-                    *active_player_added_chips += amount
+                    minimum_raise_size = Some(2 * amount);
+                    *active_player_added_chips = *amount;
                 },
                 Action::Raise(amount) => {
                     // Minimum raise size can not be None because there can only be a raise if there is has been a bet
-                    minimum_raise_size = Some(*amount - minimum_raise_size.unwrap());
-                    *active_player_added_chips += amount
+                    let raise_by_amount = amount - bigger_added_chips_before_action;
+                    minimum_raise_size = Some(bigger_added_chips_before_action + 2 * raise_by_amount);
+                    *active_player_added_chips = *amount;
                 },
                 Action::Deal(_) => (),
             }
@@ -140,8 +142,7 @@ impl Hand{
                         Position::Button => self.btn_stack,
                         Position::BigBlind => self.bb_stack,
                     };
-                    let raise_to_amount = std::cmp::max(btn_added_chips, bb_added_chips) + minimum_raise_size;
-                    valid_actions.push(Action::Raise(raise_to_amount)); // Minimum raise
+                    valid_actions.push(Action::Raise(minimum_raise_size)); // Minimum raise
                     valid_actions.push(Action::Raise(active_player_stack)); // Maximum raise
                 },
                 None => () // No raise possible
@@ -189,13 +190,38 @@ fn play() {
         let actions = hand.get_available_actions();
         dbg!(&actions);
         let input = stdin.lock().lines().next().unwrap().unwrap();
-        match input.as_str(){
-            "fold" => hand.submit_action(Action::Fold),
-            "check" => hand.submit_action(Action::Check),
-            "call" => hand.submit_action(Action::Call),
-            "bet" => hand.submit_action(Action::Bet(5)),
-            "raise" => hand.submit_action(Action::Raise(5)),
-            _ => println!("Invalid action"),
+        let tokens = input.split_whitespace().collect::<Vec<&str>>();
+        let user_action =
+        if tokens.len() == 0{
+            None
+        } else if tokens.len() == 1 {
+            match tokens.first().unwrap(){
+                &"fold" => Some(Action::Fold),
+                &"check" => Some(Action::Check),
+                &"call" => Some(Action::Call),
+                &_ => None,
+            }
+        } else if tokens.len() == 2 {
+            // Actions that require an amount
+            let amount = tokens[1].parse::<u64>().unwrap();
+            match tokens.first().unwrap(){
+                &"bet" => Some(Action::Bet(amount)),
+                &"raise" => Some(Action::Raise(amount)),
+                &_ => None,
+            }
+        } else{ // Three or more tokens -> invalid
+            None
+        };
+
+        if let Some(action) = user_action{
+            // Check if the action is valid
+            if actions.contains(&action){
+                hand.submit_action(action);
+            } else{
+                println!("Action invalid according to the rules");
+            }
+        } else{
+            println!("Invalid action");
         }
         dbg!(&hand.hand_history);
     }
