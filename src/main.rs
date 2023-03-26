@@ -62,13 +62,15 @@ impl Hand{
         let bb_hole_cards = (deck.pop().unwrap(), deck.pop().unwrap());
         let board_cards = Vec::new();
         let pot = sb_size * 3;
-        let mut hand_history = Vec::<Action>::new();
+        let hand_history = Vec::<Action>::new();
 
-        hand_history.push(Action::Deal(DealerAction::Start));
-        hand_history.push(Action::Bet(sb_size)); // Small blind
-        hand_history.push(Action::Bet(2*sb_size)); // Big blind
+        let mut hand = Hand{btn_hole_cards, bb_hole_cards, board_cards, deck, sb_size, btn_stack, bb_stack, pot, hand_history};
 
-        Hand{btn_hole_cards, bb_hole_cards, board_cards, deck, sb_size, btn_stack, bb_stack, pot, hand_history}
+        hand.submit_action(Action::Deal(DealerAction::Start));
+        hand.submit_action(Action::Bet(sb_size)); // Small blind
+        hand.submit_action(Action::Bet(2*sb_size)); // Big blind
+
+        hand
     }
 
     // Returns the valid actions for the player in turn.
@@ -322,6 +324,7 @@ fn play() {
     let mut hand = Hand::new(deck, 1000, 1000, 5);
     
     while !hand.finished(){
+        println!("Pot, BB, BTN: {}, {}, {}", hand.pot, hand.bb_stack, hand.btn_stack);
         println!("Button has: {} {}", hand.btn_hole_cards.0.to_string(), hand.btn_hole_cards.1.to_string());
         println!("BB has: {} {}", hand.bb_hole_cards.0.to_string(), hand.bb_hole_cards.1.to_string());
         println!("Action is on: {:?}", hand.get_active_player());
