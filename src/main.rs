@@ -13,7 +13,7 @@ enum DealerAction{
     Flop,
     Turn,
     River,
-    Showdown
+    End
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -169,9 +169,47 @@ impl Hand{
         }
     }
 
+    fn deal_next_step(&mut self){
+        // Find the last element in the hand history that is a Deal action
+        let street = self.hand_history.iter().rev().find(
+            |&x| match x{
+                Action::Deal(_) => true,
+                _ => false,
+            }
+        ).unwrap();
+
+        match street {
+            Action::Deal(DealerAction::Start) => {
+                self.hand_history.push(Action::Deal(DealerAction::Flop));
+                self.board_cards.push(self.deck.pop().unwrap());
+                self.board_cards.push(self.deck.pop().unwrap());
+                self.board_cards.push(self.deck.pop().unwrap());
+            },
+            Action::Deal(DealerAction::Flop) => {
+                self.hand_history.push(Action::Deal(DealerAction::Turn));
+                self.board_cards.push(self.deck.pop().unwrap());
+            },
+            Action::Deal(DealerAction::Turn) => {
+                self.hand_history.push(Action::Deal(DealerAction::River));
+                self.board_cards.push(self.deck.pop().unwrap());
+            },
+            Action::Deal(DealerAction::River) => {
+                self.hand_history.push(Action::Deal(DealerAction::End));
+            },
+            Action::Deal(DealerAction::End) => (),
+            _ => panic!("Invalid street"),
+        };
+    }
+
     fn submit_action(&mut self, action: Action){
         if self.is_valid_action(action) {
             self.hand_history.push(action);
+            match action{
+                Action::Fold => self.deal_next_step(),
+                Action::Check => self.deal_next_step(),
+                Action::Call => self.deal_next_step(),
+                _ => ()
+            }
         } else {
             println!("Invalid action");
         }
@@ -187,6 +225,9 @@ fn play() {
     let deck: Vec<Card> = Card::generate_shuffled_deck().to_vec();
     let mut hand = Hand::new(deck, 1000, 1000, 5);
     while !hand.finished(){
+        println!("Button has: {:?}", hand.btn_hole_cards);
+        println!("BB has: {:?}", hand.bb_hole_cards);
+        println!("Board: {:?}", hand.board_cards);
         let actions = hand.get_available_actions();
         dbg!(&actions);
         let input = stdin.lock().lines().next().unwrap().unwrap();
