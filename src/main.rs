@@ -46,8 +46,8 @@ struct Hand{
 
     sb_size: u64,
 
-    btn_stack: u64,
-    bb_stack: u64,
+    btn_stack: u64, // Remaining stack after all action in the hand so far
+    bb_stack: u64, // Remaining stack after all action in the hand so far
     pot: u64,
 
     hand_history: Vec<Action>
@@ -174,17 +174,6 @@ impl Hand{
         valid_actions
     }
 
-    fn is_valid_action(&self, action: Action) -> bool{
-        match action{
-            Action::Fold => true,
-            Action::Check => true,
-            Action::Call => true,
-            Action::Bet(amount) => amount > 0,
-            Action::Raise(amount) => amount > 0,
-            Action::Deal(_) => true,
-        }
-    }
-
     // Todo: repeated code with get_available_actions
     fn get_active_player(&self) -> Position{
         let (street_action_index, street) = self.hand_history.iter().enumerate().rev().find(
@@ -247,20 +236,18 @@ impl Hand{
     }
 
     fn submit_action(&mut self, action: Action){
-        if self.is_valid_action(action) {
-            self.hand_history.push(action);
-            match action{
-                Action::Fold => self.deal_next_step(),
-                Action::Check => {
-                    if self.hand_history.len() >= 2 && self.hand_history[self.hand_history.len() - 2] == Action::Check{
-                        self.deal_next_step();
-                    }
-                },
-                Action::Call => self.deal_next_step(),
-                _ => ()
-            }
-        } else {
-            println!("Invalid action");
+        self.hand_history.push(action);
+        match action{
+            Action::Fold => self.deal_next_step(),
+            Action::Check => {
+                if self.hand_history.len() >= 2 && self.hand_history[self.hand_history.len() - 2] == Action::Check{
+                    self.deal_next_step();
+                }
+            },
+            Action::Call => {
+                self.deal_next_step();
+            },
+            _ => ()
         }
     }
 
