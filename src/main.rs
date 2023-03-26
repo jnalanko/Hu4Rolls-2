@@ -255,8 +255,10 @@ impl Hand{
         // Recompute stacks and the pot
         let mut cur_street_button_total: u64 = 0;
         let mut cur_street_bb_total: u64 = 0;
+        self.pot = 0;
         let mut active_player = Position::Button;
         for action in &self.hand_history{
+            println!("Processing action: {:?}", action);
             match action{
                 Action::Deal(street) => {
                     // New street -> reset the active player and the current street totals
@@ -277,6 +279,7 @@ impl Hand{
                         Position::Button => cur_street_button_total = *amount,
                         Position::BigBlind => cur_street_bb_total = *amount,
                     }
+                    dbg!(&active_player, &cur_street_bb_total, &cur_street_button_total);
                 },    
                 Action::Raise(amount) => {
                     match active_player{
