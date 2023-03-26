@@ -249,11 +249,71 @@ impl Hand{
             },
             _ => ()
         }
+
+        // Recompute stacks and the pot
+        let mut cur_street_button_total: u64 = 0;
+        let mut cur_street_bb_total: u64 = 0;
+        let mut active_player = Position::Button;
+        for action in &self.hand_history{
+            match action{
+                Action::Deal(street) => {
+                    // New street -> reset the active player and the current street totals
+                    active_player = match street{
+                        DealerAction::Start => Position::Button,
+                        _ => Position::BigBlind,
+                        _ => panic!("Invalid street"),
+                    };
+                    self.btn_stack -= cur_street_button_total;
+                    self.bb_stack -= cur_street_bb_total;
+                    self.pot += cur_street_button_total + cur_street_bb_total;
+                    cur_street_button_total = 0;
+                    cur_street_bb_total = 0;
+                }
+                
+                Action::Bet(amount) => {
+                    match active_player{
+                        Position::Button => cur_street_button_total = *amount,
+                        Position::BigBlind => cur_street_bb_total = *amount,
+                    }
+                },    
+                Action::Raise(amount) => {
+                    match active_player{
+                        Position::Button => cur_street_button_total = *amount,
+                        Position::BigBlind => cur_street_bb_total = *amount,
+                    }
+                },
+                Action::Call(amount) => {
+                    match active_player{
+                        Position::Button => cur_street_button_total = *amount,
+                        Position::BigBlind => cur_street_bb_total = *amount,
+                    }
+                },
+
+                _ => () // An action that is not a new street and does no add chips to the po
+            }
+
+            if let Action::Deal(_) = action{
+                // Do not change the active player if we just changed the street
+            } else {
+                // Swap the active player
+                active_player = match active_player{
+                    Position::Button => Position::BigBlind,
+                    Position::BigBlind => Position::Button,
+                }
+            }
+        }
+
+        // Apply bets and raises of the unfinished street
+        self.pot += cur_street_button_total + cur_street_bb_total;
+        self.btn_stack -= cur_street_button_total;
+        self.bb_stack -= cur_street_bb_total;
+
     }
 
     fn finished(&self) -> bool{
         false // Todo
     }
+
 }
 
 fn play() {
