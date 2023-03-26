@@ -22,7 +22,7 @@ enum DealerAction{
 enum Action{
     Fold,
     Check,
-    Call,
+    Call(u64), // Call *to* not *by*
     Bet(u64), // Bet *to*, not *by*
     Raise(u64), // Raise *to*, not *by*
     Deal(DealerAction),
@@ -32,7 +32,7 @@ enum Action{
 enum ActionOption{
     Fold,
     Check,
-    Call,
+    Call(u64), // Call *to* not *by*
     Bet(u64,u64), // Min bet, max bet. Bet *to*, not *by*
     Raise(u64,u64), // Min bet, max bet. Raise *to*, not *by*
 }
@@ -63,6 +63,7 @@ impl Hand{
         let board_cards = Vec::new();
         let pot = sb_size * 3;
         let mut hand_history = Vec::<Action>::new();
+
         hand_history.push(Action::Deal(DealerAction::Start));
         hand_history.push(Action::Bet(sb_size)); // Small blind
         hand_history.push(Action::Bet(2*sb_size)); // Big blind
@@ -95,7 +96,6 @@ impl Hand{
         let mut minimum_raise_size: Option<u64> = Some(self.sb_size*2); // Minimum raise *to*, not by
 
         for action in street_actions{
-            let to_call = (btn_added_chips as i64 - bb_added_chips as i64).abs() as u64; // |btn_added_chips - bb_added_chips|
             let bigger_added_chips_before_action = max(btn_added_chips, bb_added_chips);
 
             // Get a reference to the added chips of the active player
@@ -107,7 +107,7 @@ impl Hand{
             match action{
                 Action::Fold => (),
                 Action::Check => (),
-                Action::Call => *active_player_added_chips += to_call,
+                Action::Call(amount) => *active_player_added_chips = bigger_added_chips_before_action,
                 Action::Bet(amount) => {
                     minimum_raise_size = Some(2 * amount);
                     *active_player_added_chips = *amount;
@@ -148,7 +148,7 @@ impl Hand{
 
         // Can we call?
         if btn_added_chips != bb_added_chips{
-            valid_actions.push(ActionOption::Call);
+            valid_actions.push(ActionOption::Call(max(btn_added_chips, bb_added_chips)));
         }
 
         // Can we raise?
@@ -244,7 +244,7 @@ impl Hand{
                     self.deal_next_step();
                 }
             },
-            Action::Call => {
+            Action::Call(amount) => {
                 self.deal_next_step();
             },
             _ => ()
@@ -260,11 +260,12 @@ fn play() {
     let mut stdin = std::io::stdin();
     let deck: Vec<Card> = Card::generate_shuffled_deck().to_vec();
     let mut hand = Hand::new(deck, 1000, 1000, 5);
+    
     while !hand.finished(){
         println!("Button has: {} {}", hand.btn_hole_cards.0.to_string(), hand.btn_hole_cards.1.to_string());
         println!("BB has: {} {}", hand.bb_hole_cards.0.to_string(), hand.bb_hole_cards.1.to_string());
-        print!("Board: ");
         println!("Action is on: {:?}", hand.get_active_player());
+        print!("Board: ");
         for card in &hand.board_cards{
             print!("{} ", card.to_string());
         }
@@ -272,6 +273,15 @@ fn play() {
 
         let options = hand.get_available_actions();
         dbg!(&options);
+
+        let call_to_amount = match options.iter().find(|&x| match x{
+            ActionOption::Call(amount) => true,
+            _ => false,
+        }) {
+            Some(ActionOption::Call(amount)) => *amount,
+            _ => 0, // Todo: make this None or something
+        };
+
         let input = stdin.lock().lines().next().unwrap().unwrap();
         let tokens = input.split_whitespace().collect::<Vec<&str>>();
         let user_action =
@@ -281,7 +291,7 @@ fn play() {
             match tokens.first().unwrap(){
                 &"fold" => Some(Action::Fold),
                 &"check" => Some(Action::Check),
-                &"call" => Some(Action::Call),
+                &"call" => Some(Action::Call(call_to_amount)),
                 &_ => None,
             }
         } else if tokens.len() == 2 {
