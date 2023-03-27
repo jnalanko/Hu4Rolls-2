@@ -312,7 +312,6 @@ impl Hand{
         
         for street in streets{
             let (btn_added_chips, bb_added_chips, _, _) = self.get_street_status(street);
-            dbg!(street, btn_added_chips, bb_added_chips);
             pot += btn_added_chips + bb_added_chips;
             btn_stack -= btn_added_chips;
             bb_stack -= bb_added_chips;
@@ -394,8 +393,6 @@ fn play() {
         } else {
             println!("Invalid action");
         }
-
-        dbg!(&hand.hand_history);
     }
 }
 
