@@ -13,7 +13,7 @@ fn play() {
     let deck: Vec<Card> = Card::generate_shuffled_deck().to_vec();
     let mut hand = Hand::new(deck, 1000, 1000, 5);
     let options = hand.streets.last().unwrap().get_available_actions();
-    dbg!(&options);    
+    dbg!(&options);
 
     while !hand.finished(){
         let street = hand.streets.last().unwrap();

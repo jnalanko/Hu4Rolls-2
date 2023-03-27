@@ -21,6 +21,12 @@ pub struct Hand{
 
 }
 
+pub enum ShowdownResult{
+    ButtonWins,
+    BigBlindWins,
+    SplitPot,
+}
+
 impl Hand{
 
     // Assumes that both players have enough chips to post blinds
@@ -51,7 +57,7 @@ impl Hand{
             streets}
     }
 
-    pub fn run_showdown(&mut self){
+    pub fn run_showdown(&mut self) -> ShowdownResult{
 
         let eval = Evaluator::new();
 
@@ -67,11 +73,11 @@ impl Hand{
         dbg!(bb_hand_eval);
 
         if btn_hand_eval.is_better_than(bb_hand_eval){
-            println!("Button wins");
+            ShowdownResult::ButtonWins
         } else if btn_hand_eval.is_worse_than(bb_hand_eval){
-            println!("BB wins");
+            ShowdownResult::BigBlindWins
         } else {
-            println!("Split pot");
+            ShowdownResult::SplitPot
         }
 
     }
