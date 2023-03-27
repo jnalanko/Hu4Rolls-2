@@ -22,6 +22,7 @@ enum DealerAction{
 enum Action{
     Fold,
     Check,
+    PostBlind(u64),
     Call(u64), // Call *to* not *by*
     Bet(u64), // Bet *to*, not *by*
     Raise(u64), // Raise *to*, not *by*
@@ -84,8 +85,8 @@ impl Hand{
         // ^ Not submitted via submit_action because otherwise it breaks
         // when it tries to split by street
 
-        hand.submit_action(Action::Bet(sb_size)); // Small blind
-        hand.submit_action(Action::Bet(2*sb_size)); // Big blind
+        hand.submit_action(Action::PostBlind(sb_size)); // Small blind
+        hand.submit_action(Action::PostBlind(2*sb_size)); // Big blind
 
         hand
     }
@@ -140,6 +141,7 @@ impl Hand{
                 Action::Fold => (),
                 Action::Check => (),
                 Action::Call(amount) => *active_player_added_chips = *amount,
+                Action::PostBlind(amount) => *active_player_added_chips = *amount,
                 Action::Bet(amount) => {
                     minimum_raise_size = 2 * amount;
                     *active_player_added_chips = *amount;
@@ -251,6 +253,7 @@ impl Hand{
             Action::Fold => available_actions.contains(&ActionOption::Fold),
             Action::Check => available_actions.contains(&ActionOption::Check),
             Action::Call(amount) => available_actions.contains(&ActionOption::Call(amount)),
+            Action::PostBlind(_) => true, // We assume blind posting are always valid
             Action::Bet(amount) => {
                 available_actions.iter().any(|x| match x{
                     ActionOption::Bet(minimum, maximum) => (amount >= *minimum && amount <= *maximum),
@@ -344,6 +347,7 @@ fn play() {
     dbg!(&options);    
 
     while !hand.finished(){
+        dbg!(&hand.hand_history);
         let active_street_actions = *hand.split_by_street().last().unwrap();
         let (btn_added_chips,bb_added_chips,minimum_raise_size, active_player) = hand.get_street_status(active_street_actions);
         println!("Pot, BB, BTN: {}, {}, {}", hand.pot, hand.bb_stack, hand.btn_stack);
