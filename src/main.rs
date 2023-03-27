@@ -128,8 +128,7 @@ impl Hand{
     }
 
     // Returns money added by button, money added by sb, the minimum raise size, next-to-act player
-    fn get_street_status(&self, actions: &[Action]) -> (u64, u64, u64, Position) {
-        let active_street_actions = *self.split_by_street().last().unwrap();
+    fn get_street_status(&self, active_street_actions: &[Action]) -> (u64, u64, u64, Position) {
         let street = self.extract_dealer_action(active_street_actions);
         let mut active_player = self.get_first_to_act(street);
 
@@ -295,6 +294,7 @@ impl Hand{
         
         for street in streets{
             let (btn_added_chips, bb_added_chips, _, _) = self.get_street_status(street);
+            dbg!(street, btn_added_chips, bb_added_chips);
             pot += btn_added_chips + bb_added_chips;
             btn_stack -= btn_added_chips;
             bb_stack -= bb_added_chips;
