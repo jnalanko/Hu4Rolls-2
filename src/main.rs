@@ -89,7 +89,10 @@ impl Hand{
                 hand_history,
                 cur_betting_round};
 
-        hand.submit_action(Action::Deal(DealerAction::Start));
+        hand.hand_history.push(Action::Deal(DealerAction::Start));
+        // ^ Not submitted via submit_action because otherwise it breaks
+        // when it tries to split by street
+
         hand.submit_action(Action::Bet(sb_size)); // Small blind
         hand.submit_action(Action::Bet(2*sb_size)); // Big blind
 
@@ -258,11 +261,13 @@ impl Hand{
     }
   
     fn submit_action(&mut self, action: Action){
-        self.hand_history.push(action);
         let active_street_actions = *self.split_by_street().last().unwrap();
+        let (_, _, _, active_player) = self.get_street_status(active_street_actions);
         let street = self.extract_dealer_action(active_street_actions);
-        let active_player = self.get_first_to_act(street);
-        let last_to_act = self.other_player(active_player);
+        let last_to_act = self.other_player(self.get_first_to_act(street));
+
+        self.hand_history.push(action);
+
         match action{
             Action::Fold => self.deal_next_step(),
             Action::Check => {
