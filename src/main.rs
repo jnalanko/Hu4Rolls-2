@@ -37,6 +37,11 @@ enum ActionOption{
     Raise(u64,u64), // Min bet, max bet. Raise *to*, not *by*
 }
 
+struct BettingRound{
+    actions: Vec<Action>,
+    chips_in_pot_by_player: (u64, u64), // (Button, BigBlind)
+}
+
 struct Hand{
 
     btn_hole_cards: (Card, Card),
@@ -53,7 +58,9 @@ struct Hand{
     bb_stack: u64, // Remaining stack after all action in the hand so far
     pot: u64,
 
-    hand_history: Vec<Action>
+    hand_history: Vec<Action>,
+
+    cur_betting_round: BettingRound,
 
 }
 
@@ -66,6 +73,7 @@ impl Hand{
         let board_cards = Vec::new();
         let pot = sb_size * 3;
         let hand_history = Vec::<Action>::new();
+        let cur_betting_round = BettingRound{actions: Vec::new(), chips_in_pot_by_player: (0,0)};
 
         let mut hand = 
             Hand{btn_hole_cards, 
@@ -77,7 +85,9 @@ impl Hand{
                 btn_stack, 
                 bb_start_stack: bb_stack,
                 bb_stack, 
-                pot, hand_history};
+                pot, 
+                hand_history,
+                cur_betting_round};
 
         hand.submit_action(Action::Deal(DealerAction::Start));
         hand.submit_action(Action::Bet(sb_size)); // Small blind
@@ -86,31 +96,45 @@ impl Hand{
         hand
     }
 
-    // Returns the valid actions for the player in turn.
-    // For bets, raises, and allins, return the minimum and maximum amounts.
-    fn get_available_actions(&self) -> Vec<ActionOption>{
-        let (street_action_index, street) = self.hand_history.iter().enumerate().rev().find(
+    // Splits the hand history by street. The first
+    // action on each street is a Deal action.
+    fn split_by_street(&self) -> Vec<&[Action]>{
+        let mut start_indices: Vec<usize> = self.hand_history.iter().enumerate().filter(
             |&(_, &x)| match x{
                 Action::Deal(_) => true,
                 _ => false,
             }
-        ).unwrap();
+        ).map(|(i,_)| i).collect();
 
-        let street_actions = &self.hand_history[street_action_index.. ];
+        start_indices.push(self.hand_history.len()); // End sentinel
 
-        let mut active_player = match street{
-            Action::Deal(DealerAction::Start) => Position::Button,
-            Action::Deal(_) => Position::BigBlind,
-            _ => panic!("Invalid street"),
-        };
+        let mut street_ranges = Vec::<&[Action]>::new();
+        for i in 0..start_indices.len()-1{
+            street_ranges.push(&self.hand_history[start_indices[i]..start_indices[i+1]]);
+        }
 
-        // Simulate the street so far
+        street_ranges
+    }
+
+    fn get_first_to_act(&self, street: DealerAction) -> Position{
+        match street{
+            DealerAction::Start => Position::Button,
+            DealerAction::End => panic!("Hand has ended already"),
+            _ => Position::BigBlind,
+        }
+    }
+
+    // Returns money added by button, money added by sb, the minimum raise size, next-to-act player
+    fn get_street_status(&self, actions: &[Action]) -> (u64, u64, u64, Position) {
+        let active_street_actions = *self.split_by_street().last().unwrap();
+        let street = self.extract_dealer_action(active_street_actions);
+        let mut active_player = self.get_first_to_act(street);
+
         let mut btn_added_chips: u64 = 0;
         let mut bb_added_chips: u64 = 0;
+        let mut minimum_raise_size: u64 = 0;
 
-        let mut minimum_raise_size: Option<u64> = Some(self.sb_size*2); // Minimum raise *to*, not by
-
-        for action in street_actions{
+        for action in active_street_actions{
             let bigger_added_chips_before_action = max(btn_added_chips, bb_added_chips);
 
             // Get a reference to the added chips of the active player
@@ -122,15 +146,15 @@ impl Hand{
             match action{
                 Action::Fold => (),
                 Action::Check => (),
-                Action::Call(amount) => *active_player_added_chips = bigger_added_chips_before_action,
+                Action::Call(amount) => *active_player_added_chips = *amount,
                 Action::Bet(amount) => {
-                    minimum_raise_size = Some(2 * amount);
+                    minimum_raise_size = 2 * amount;
                     *active_player_added_chips = *amount;
                 },
                 Action::Raise(amount) => {
                     // Minimum raise size can not be None because there can only be a raise if there is has been a bet
                     let raise_by_amount = amount - bigger_added_chips_before_action;
-                    minimum_raise_size = Some(bigger_added_chips_before_action + 2 * raise_by_amount);
+                    minimum_raise_size = bigger_added_chips_before_action + 2 * raise_by_amount;
                     *active_player_added_chips = *amount;
                 },
                 Action::Deal(_) => (),
@@ -142,6 +166,26 @@ impl Hand{
                 Position::BigBlind => Position::Button,
             };
         }
+
+        (btn_added_chips, bb_added_chips, minimum_raise_size, active_player)
+    }
+
+    fn extract_dealer_action(&self, actions: &[Action]) -> DealerAction{
+        match actions[0]{
+            Action::Deal(street) => street,
+            _ => panic!("First action on a street should be a Deal action"),
+        }
+    }
+
+    // Returns the valid actions for the player in turn.
+    // For bets, raises, and allins, return the minimum and maximum amounts.
+    fn get_available_actions(&self) -> Vec<ActionOption>{
+
+        let active_street_actions = *self.split_by_street().last().unwrap();
+        let street = self.extract_dealer_action(active_street_actions);
+        let mut active_player = self.get_first_to_act(street);
+
+        let (btn_added_chips,bb_added_chips,minimum_raise_size, active_player) = self.get_street_status(active_street_actions);
 
         let active_player_stack = match active_player{
             Position::Button => self.btn_stack,
@@ -157,8 +201,7 @@ impl Hand{
         // Can we bet?
         if btn_added_chips == 0 && bb_added_chips == 0{
             // Bet must be possible if no chips have been added yet and the hand has not ended yet
-            let minbet = minimum_raise_size.unwrap();
-            valid_actions.push(ActionOption::Bet(minbet, active_player_stack));
+            valid_actions.push(ActionOption::Bet(minimum_raise_size, active_player_stack));
         }
 
         // Can we call?
@@ -167,21 +210,12 @@ impl Hand{
         }
 
         // Can we raise?
-        if btn_added_chips != bb_added_chips{
-            match minimum_raise_size{ // Raises
-                Some(minimum_raise_size) => {
-                    let active_player_stack = match active_player{
-                        Position::Button => self.btn_stack,
-                        Position::BigBlind => self.bb_stack,
-                    };
-                    valid_actions.push(ActionOption::Raise(minimum_raise_size, active_player_stack));
-                },
-                None => () // No raise possible
-            }
-        } 
+        if true{ // TODO check that our stack has more chips than the bigger stack
+            valid_actions.push(ActionOption::Raise(minimum_raise_size, active_player_stack));
+        }
         
         // Can we check?
-        if btn_added_chips + bb_added_chips == 0 || btn_added_chips != bb_added_chips{
+        if btn_added_chips == bb_added_chips{
             // Equal amount of added bets and raises -> check is possible
             valid_actions.push(ActionOption::Check);
         }
@@ -249,7 +283,7 @@ impl Hand{
             _ => panic!("Invalid street"),
         };
     }
-
+  
     fn submit_action(&mut self, action: Action){
         self.hand_history.push(action);
         match action{
@@ -311,7 +345,7 @@ impl Hand{
                     }
                 },
 
-                _ => () // An action that is not a new street and does no add chips to the po
+                _ => () // An action that is not a new street and does no add chips to the pot
             }
 
             if let Action::Deal(_) = action{
