@@ -132,7 +132,7 @@ impl Hand{
 
         let mut btn_added_chips: u64 = 0;
         let mut bb_added_chips: u64 = 0;
-        let mut minimum_raise_size: u64 = 0;
+        let mut minimum_raise_size: u64 = self.sb_size*2;
 
         for action in active_street_actions[1..].iter(){
             let bigger_added_chips_before_action = max(btn_added_chips, bb_added_chips);
