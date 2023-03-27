@@ -1,5 +1,5 @@
 
-use crate::{Client, Clients};
+use crate::{Client, Clients, GameState};
 use futures::{FutureExt, StreamExt};
 use serde::Deserialize;
 use serde_json::from_str;
@@ -12,7 +12,7 @@ pub struct TopicsRequest {
     topics: Vec<String>,
 }
 
-pub async fn client_connection(ws: WebSocket, id: String, clients: Clients, mut client: Client) {
+pub async fn client_connection(ws: WebSocket, id: String, clients: Clients, mut client: Client, gamestate: GameState) {
     let (client_ws_sender, mut client_ws_rcv) = ws.split();
     let (client_sender, client_rcv) = mpsc::unbounded_channel();
 
@@ -36,34 +36,33 @@ pub async fn client_connection(ws: WebSocket, id: String, clients: Clients, mut 
                 break;
             }
         };
-        client_msg(&id, msg, &clients).await;
+        client_msg(&id, msg, &clients, &gamestate).await;
     }
 
     clients.write().await.remove(&id);
     println!("{} disconnected", id);
 }
 
-async fn client_msg(id: &str, msg: Message, clients: &Clients) {
+async fn client_msg(id: &str, msg: Message, clients: &Clients, gamestate: &GameState) {
     println!("received message from {}: {:?}", id, msg);
     let message = match msg.to_str() {
         Ok(v) => v,
         Err(_) => return,
     };
 
-    if message == "ping" || message == "ping\n" {
-        return;
-    }
-
-    let topics_req: TopicsRequest = match from_str(&message) {
-        Ok(v) => v,
-        Err(e) => {
-            eprintln!("error while parsing message to topics request: {}", e);
-            return;
-        }
-    };
-
     let mut locked = clients.write().await;
     if let Some(v) = locked.get_mut(id) {
-        v.topics = topics_req.topics;
+        if let Some(sender) = &v.sender {
+            let hand = gamestate.read().await;
+            let street = hand.streets.last().unwrap();
+            street.get_available_actions();
+            
+            let A = format!("Pot, BB, BTN: {}, {}, {}", hand.pot, hand.bb_stack, hand.btn_stack);
+            let B = format!("Button has: {} {}", hand.btn_hole_cards.0.to_string(), hand.btn_hole_cards.1.to_string());
+            let C = format!("BB has: {} {}", hand.bb_hole_cards.0.to_string(), hand.bb_hole_cards.1.to_string());
+            let to_client = format!("{}\n{}\n{}\n", A, B, C);
+
+            let _ = sender.send(Ok(Message::text(to_client)));
+        }
     }
 }

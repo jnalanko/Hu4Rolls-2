@@ -10,6 +10,16 @@ mod ws;
 type Result<T> = std::result::Result<T, Rejection>;
 type Clients = Arc<RwLock<HashMap<String, Client>>>;
 
+use poker::{cards, Card, EvalClass, Evaluator, Rank};
+mod street;
+mod common;
+mod hand;
+
+use street::{Action, ActionOption};
+use hand::Hand;
+
+type GameState = Arc<RwLock<Hand>>;
+
 #[derive(Debug, Clone)]
 pub struct Client {
     pub user_id: usize,
@@ -21,6 +31,10 @@ pub struct Client {
 
 #[tokio::main]
 async fn main() {
+
+    let deck: Vec<Card> = Card::generate_shuffled_deck().to_vec();
+    let gamestate = Arc::new(RwLock::new(Hand::new(deck, 1000, 1000, 5)));
+
     let clients: Clients = Arc::new(RwLock::new(HashMap::new()));
 
     let health_route = warp::path!("health").and_then(handler::health_handler);
@@ -46,6 +60,7 @@ async fn main() {
         .and(warp::ws())
         .and(warp::path::param())
         .and(with_clients(clients.clone()))
+        .and(with_gamestate(gamestate.clone()))
         .and_then(handler::ws_handler);
 
     let routes = health_route
@@ -59,4 +74,8 @@ async fn main() {
 
 fn with_clients(clients: Clients) -> impl Filter<Extract = (Clients,), Error = Infallible> + Clone {
     warp::any().map(move || clients.clone())
+}
+
+fn with_gamestate(gamestate: GameState) -> impl Filter<Extract = (GameState,), Error = Infallible> + Clone {
+    warp::any().map(move || gamestate.clone())
 }

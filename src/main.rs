@@ -83,28 +83,4 @@ fn main() {
 
     play();
 
-    return;
-
-    // Create a reusable evaluator
-    let eval = Evaluator::new();
-
-    // Parse a `Vec` of cards from a str
-    let royal_flush_cards: Vec<Card> = cards!("Ks Js Ts Qs As").try_collect().unwrap();
-    dbg!(&royal_flush_cards);
-
-    // Evaluate the hand
-    let royal_flush_hand = eval.evaluate(royal_flush_cards).unwrap();
-
-    assert!(matches!(
-        royal_flush_hand.class(),
-        EvalClass::StraightFlush {
-            high_rank: Rank::Ace
-        }
-    ));
-    assert!(royal_flush_hand.is_royal_flush());
-
-    // Compare hands
-    let pair_cards: Vec<Card> = cards!("3c 4h Td 3h Kd").try_collect().unwrap();
-    let pair_hand = eval.evaluate(pair_cards).unwrap();
-    assert!(royal_flush_hand.is_better_than(pair_hand));
 }
