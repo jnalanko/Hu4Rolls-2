@@ -198,7 +198,7 @@ impl Hand{
         }
 
         // Can we raise?
-        if true{ // TODO check that our stack has more chips than the bigger stack
+        if btn_added_chips + bb_added_chips > 0{ // TODO check that our stack has more chips than the bigger stack
             valid_actions.push(ActionOption::Raise(minimum_raise_size, active_player_stack));
         }
         
