@@ -219,33 +219,28 @@ impl Hand{
     }
 
     fn deal_next_step(&mut self){
-        // Find the last element in the hand history that is a Deal action
-        let street = self.hand_history.iter().rev().find(
-            |&x| match x{
-                Action::Deal(_) => true,
-                _ => false,
-            }
-        ).unwrap();
+
+        let street = self.extract_dealer_action(self.split_by_street().last().unwrap());
 
         match street {
-            Action::Deal(DealerAction::Start) => {
+            DealerAction::Start => {
                 self.hand_history.push(Action::Deal(DealerAction::Flop));
                 self.board_cards.push(self.deck.pop().unwrap());
                 self.board_cards.push(self.deck.pop().unwrap());
                 self.board_cards.push(self.deck.pop().unwrap());
             },
-            Action::Deal(DealerAction::Flop) => {
+            DealerAction::Flop => {
                 self.hand_history.push(Action::Deal(DealerAction::Turn));
                 self.board_cards.push(self.deck.pop().unwrap());
             },
-            Action::Deal(DealerAction::Turn) => {
+            DealerAction::Turn => {
                 self.hand_history.push(Action::Deal(DealerAction::River));
                 self.board_cards.push(self.deck.pop().unwrap());
             },
-            Action::Deal(DealerAction::River) => {
+            DealerAction::River => {
                 self.hand_history.push(Action::Deal(DealerAction::End));
             },
-            Action::Deal(DealerAction::End) => (),
+            DealerAction::End => (),
             _ => panic!("Invalid street"),
         };
     }
