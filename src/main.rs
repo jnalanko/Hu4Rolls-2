@@ -227,7 +227,7 @@ impl Street{
 
         // Update stacks
         let (btn_added_chips, bb_added_chips, _, _) = self.get_street_status();
-        self.btn_stack = self.bb_start_stack - btn_added_chips;
+        self.btn_stack = self.btn_start_stack - btn_added_chips;
         self.bb_stack = self.bb_start_stack - bb_added_chips;
 
         Ok(result)
