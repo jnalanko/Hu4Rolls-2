@@ -271,6 +271,28 @@ impl Hand{
             Action::Deal(_) => false,
         }
     }
+
+    fn update_pot_and_stacks(&mut self){
+
+        // Initialize the pot and stacks
+        let mut pot = 0 as u64;
+        let mut btn_stack = self.btn_start_stack as u64;
+        let mut bb_stack = self.bb_start_stack as u64;
+
+        // Iterate over all streets and update the pot and stacks
+        let streets = self.split_by_street();
+        for street in streets{
+            let (btn_added_chips, bb_added_chips, _, _) = self.get_street_status(street);
+            pot += btn_added_chips + bb_added_chips;
+            btn_stack -= btn_added_chips;
+            bb_stack -= bb_added_chips;
+        }
+
+        // Apply the updates
+        self.pot = pot;
+        self.btn_stack = btn_stack;
+        self.bb_stack = bb_stack;
+    }
   
     fn submit_action(&mut self, action: Action) -> Result<(), String>{
 
@@ -278,13 +300,16 @@ impl Hand{
             return Err("Invalid action".to_string());
         }
 
+        // Get status before applying the action
         let active_street_actions = *self.split_by_street().last().unwrap();
         let (_, _, _, active_player) = self.get_street_status(active_street_actions);
         let street = self.extract_dealer_action(active_street_actions);
         let last_to_act = self.other_player(self.get_first_to_act(street));
 
+        // Apply the action
         self.hand_history.push(action);
 
+        // Deal the next step if appropriate
         match action{
             Action::Fold => self.deal_next_step(),
             Action::Check => {
@@ -304,23 +329,7 @@ impl Hand{
             _ => ()
         }
 
-        // Update the pot and stack sizes
-        let mut pot = 0 as u64;
-        let mut btn_stack = self.btn_start_stack as u64;
-        let mut bb_stack = self.bb_start_stack as u64;
-        let streets = self.split_by_street();
-        
-        for street in streets{
-            let (btn_added_chips, bb_added_chips, _, _) = self.get_street_status(street);
-            pot += btn_added_chips + bb_added_chips;
-            btn_stack -= btn_added_chips;
-            bb_stack -= bb_added_chips;
-        }
-
-        // Update the struct
-        self.pot = pot;
-        self.btn_stack = btn_stack;
-        self.bb_stack = bb_stack;
+        self.update_pot_and_stacks();
 
         Ok(())
 
