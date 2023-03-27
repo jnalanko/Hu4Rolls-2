@@ -18,7 +18,7 @@ fn other_player(player: Position) -> Position{
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum StreetName{
-    Start,
+    Preflop,
     Flop,
     Turn,
     River,
@@ -99,7 +99,7 @@ impl Street{
 
     fn get_first_to_act(&self) -> Position{
         match self.street{
-            StreetName::Start => Position::Button,
+            StreetName::Preflop => Position::Button,
             StreetName::End => panic!("Hand has ended already"),
             _ => Position::BigBlind,
         }
@@ -214,7 +214,7 @@ impl Street{
             Action::Call(amount) => {
                 // Next step is dealt after a call unless we are before the flop
                 // and the call is a limp from the button
-                if self.street == StreetName::Start && active_player == Position::Button && amount == self.min_open_raise{
+                if self.street == StreetName::Preflop && active_player == Position::Button && amount == self.min_open_raise{
                     // Limp from the button -> Betting is still open
                 } else{
                     result = ActionResult::BettingClosed;
@@ -267,7 +267,7 @@ impl Hand{
 
         let mut streets = Vec::<Street>::new();
 
-        let mut preflop = Street::new(StreetName::Start, 2*sb_size, btn_stack, bb_stack);
+        let mut preflop = Street::new(StreetName::Preflop, 2*sb_size, btn_stack, bb_stack);
         preflop.submit_action(Action::PostBlind(sb_size)); // Small blind
         preflop.submit_action(Action::PostBlind(2*sb_size)); // Big blind
 
@@ -314,10 +314,10 @@ impl Hand{
     fn goto_next_street(&mut self){
 
         let street_name = self.streets.last().unwrap().street;
-        let mut next_street_name = StreetName::Start;
+        let mut next_street_name = StreetName::Preflop;
 
         match street_name {
-            StreetName::Start => {
+            StreetName::Preflop => {
                 next_street_name = StreetName::Flop;
                 self.board_cards.push(self.deck.pop().unwrap());
                 self.board_cards.push(self.deck.pop().unwrap());
