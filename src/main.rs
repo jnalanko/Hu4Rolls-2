@@ -220,6 +220,31 @@ impl Hand{
         }
     }
 
+    fn run_showdown(&mut self){
+
+        let eval = Evaluator::new();
+
+        let mut btn_hand: Vec<Card> = vec![self.btn_hole_cards.0, self.btn_hole_cards.1];
+        let mut bb_hand: Vec<Card> = vec![self.bb_hole_cards.0, self.bb_hole_cards.1];
+        btn_hand.extend(self.board_cards.clone());
+        bb_hand.extend(self.board_cards.clone());
+
+        let btn_hand_eval = eval.evaluate(&btn_hand).unwrap();
+        let bb_hand_eval = eval.evaluate(&bb_hand).unwrap();
+        
+        dbg!(btn_hand_eval);
+        dbg!(bb_hand_eval);
+
+        if btn_hand_eval.is_better_than(bb_hand_eval){
+            println!("Button wins");
+        } else if btn_hand_eval.is_worse_than(bb_hand_eval){
+            println!("BB wins");
+        } else {
+            println!("Split pot");
+        }
+
+    }
+
     fn deal_next_step(&mut self){
 
         let street = self.extract_dealer_action(self.split_by_street().last().unwrap());
@@ -241,6 +266,7 @@ impl Hand{
             },
             DealerAction::River => {
                 self.hand_history.push(Action::Deal(DealerAction::End));
+                self.run_showdown();
             },
             DealerAction::End => (),
             _ => panic!("Invalid street"),
