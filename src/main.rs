@@ -37,11 +37,6 @@ enum ActionOption{
     Raise(u64,u64), // Min bet, max bet. Raise *to*, not *by*
 }
 
-struct BettingRound{
-    actions: Vec<Action>,
-    chips_in_pot_by_player: (u64, u64), // (Button, BigBlind)
-}
-
 struct Hand{
 
     btn_hole_cards: (Card, Card),
@@ -60,8 +55,6 @@ struct Hand{
 
     hand_history: Vec<Action>,
 
-    cur_betting_round: BettingRound,
-
 }
 
 impl Hand{
@@ -73,7 +66,6 @@ impl Hand{
         let board_cards = Vec::new();
         let pot = sb_size * 3;
         let hand_history = Vec::<Action>::new();
-        let cur_betting_round = BettingRound{actions: Vec::new(), chips_in_pot_by_player: (0,0)};
 
         let mut hand = 
             Hand{btn_hole_cards, 
@@ -86,8 +78,7 @@ impl Hand{
                 bb_start_stack: bb_stack,
                 bb_stack, 
                 pot, 
-                hand_history,
-                cur_betting_round};
+                hand_history};
 
         hand.hand_history.push(Action::Deal(DealerAction::Start));
         // ^ Not submitted via submit_action because otherwise it breaks
