@@ -249,8 +249,35 @@ impl Hand{
             _ => panic!("Invalid street"),
         };
     }
+
+    fn is_valid_action(&self, action: Action) -> bool{
+        let available_actions = self.get_available_actions();
+        match action{
+            Action::Fold => available_actions.contains(&ActionOption::Fold),
+            Action::Check => available_actions.contains(&ActionOption::Check),
+            Action::Call(amount) => available_actions.contains(&ActionOption::Call(amount)),
+            Action::Bet(amount) => {
+                available_actions.iter().any(|x| match x{
+                    ActionOption::Bet(minimum, maximum) => (amount >= *minimum && amount <= *maximum),
+                    _ => false,
+                })
+            },
+            Action::Raise(amount) => {
+                available_actions.iter().any(|x| match x{
+                    ActionOption::Raise(minimum, maximum) => (amount >= *minimum && amount <= *maximum),
+                    _ => false,
+                })
+            },
+            Action::Deal(_) => false,
+        }
+    }
   
-    fn submit_action(&mut self, action: Action){
+    fn submit_action(&mut self, action: Action) -> Result<(), String>{
+
+        if !self.is_valid_action(action) {
+            return Err("Invalid action".to_string());
+        }
+
         let active_street_actions = *self.split_by_street().last().unwrap();
         let (_, _, _, active_player) = self.get_street_status(active_street_actions);
         let street = self.extract_dealer_action(active_street_actions);
@@ -295,6 +322,8 @@ impl Hand{
         self.pot = pot;
         self.btn_stack = btn_stack;
         self.bb_stack = bb_stack;
+
+        Ok(())
 
     }
 
@@ -358,7 +387,10 @@ fn play() {
         };
 
         if let Some(action) = user_action{
-            hand.submit_action(action); // TODO: validate
+            match hand.submit_action(action){
+                Ok(_) => (),
+                Err(e) => println!("{}", e),
+            }
         } else {
             println!("Invalid action");
         }
