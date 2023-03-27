@@ -347,7 +347,6 @@ fn play() {
     dbg!(&options);    
 
     while !hand.finished(){
-        dbg!(&hand.hand_history);
         let active_street_actions = *hand.split_by_street().last().unwrap();
         let (btn_added_chips,bb_added_chips,minimum_raise_size, active_player) = hand.get_street_status(active_street_actions);
         println!("Pot, BB, BTN: {}, {}, {}", hand.pot, hand.bb_stack, hand.btn_stack);
@@ -371,6 +370,10 @@ fn play() {
 
         let input = stdin.lock().lines().next().unwrap().unwrap();
         let tokens = input.split_whitespace().collect::<Vec<&str>>();
+
+        if tokens.len() == 1 && tokens[0] == "hh"{
+            dbg!(&hand.hand_history);
+        }
         let user_action =
         if tokens.len() == 0{
             None
