@@ -17,7 +17,7 @@ fn other_player(player: Position) -> Position{
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-enum DealerAction{
+enum StreetName{
     Start,
     Flop,
     Turn,
@@ -33,7 +33,6 @@ enum Action{
     Call(u64), // Call *to* not *by*
     Bet(u64), // Bet *to*, not *by*
     Raise(u64), // Raise *to*, not *by*
-    Deal(DealerAction),
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -67,7 +66,7 @@ struct Hand{
 
 #[derive(Debug)]
 struct Street{
-    street: DealerAction,
+    street: StreetName,
     actions: Vec<Action>,
     min_open_raise: u64,
 
@@ -86,7 +85,7 @@ enum ActionResult{
 // These functions implement the betting logic of a single betting round
 impl Street{
 
-    fn new(street: DealerAction, min_open_raise: u64, btn_start_stack: u64, bb_start_stack: u64) -> Street{
+    fn new(street: StreetName, min_open_raise: u64, btn_start_stack: u64, bb_start_stack: u64) -> Street{
         Street{
             street,
             actions: Vec::new(),
@@ -100,8 +99,8 @@ impl Street{
 
     fn get_first_to_act(&self) -> Position{
         match self.street{
-            DealerAction::Start => Position::Button,
-            DealerAction::End => panic!("Hand has ended already"),
+            StreetName::Start => Position::Button,
+            StreetName::End => panic!("Hand has ended already"),
             _ => Position::BigBlind,
         }
     }
@@ -138,7 +137,6 @@ impl Street{
                     minimum_raise_size = bigger_added_chips_before_action + 2 * raise_by_amount;
                     *active_player_added_chips = *amount;
                 },
-                Action::Deal(_) => (),
             }
 
             // Switch active player
@@ -216,7 +214,7 @@ impl Street{
             Action::Call(amount) => {
                 // Next step is dealt after a call unless we are before the flop
                 // and the call is a limp from the button
-                if self.street == DealerAction::Start && active_player == Position::Button && amount == self.min_open_raise{
+                if self.street == StreetName::Start && active_player == Position::Button && amount == self.min_open_raise{
                     // Limp from the button -> Betting is still open
                 } else{
                     result = ActionResult::BettingClosed;
@@ -253,7 +251,6 @@ impl Street{
                     _ => false,
                 })
             },
-            Action::Deal(_) => false,
         }
     }
 
@@ -270,7 +267,7 @@ impl Hand{
 
         let mut streets = Vec::<Street>::new();
 
-        let mut preflop = Street::new(DealerAction::Start, 2*sb_size, btn_stack, bb_stack);
+        let mut preflop = Street::new(StreetName::Start, 2*sb_size, btn_stack, bb_stack);
         preflop.submit_action(Action::PostBlind(sb_size)); // Small blind
         preflop.submit_action(Action::PostBlind(2*sb_size)); // Big blind
 
@@ -317,28 +314,28 @@ impl Hand{
     fn goto_next_street(&mut self){
 
         let street_name = self.streets.last().unwrap().street;
-        let mut next_street_name = DealerAction::Start;
+        let mut next_street_name = StreetName::Start;
 
         match street_name {
-            DealerAction::Start => {
-                next_street_name = DealerAction::Flop;
+            StreetName::Start => {
+                next_street_name = StreetName::Flop;
                 self.board_cards.push(self.deck.pop().unwrap());
                 self.board_cards.push(self.deck.pop().unwrap());
                 self.board_cards.push(self.deck.pop().unwrap());
             },
-            DealerAction::Flop => {
-                next_street_name = DealerAction::Turn;
+            StreetName::Flop => {
+                next_street_name = StreetName::Turn;
                 self.board_cards.push(self.deck.pop().unwrap());
             },
-            DealerAction::Turn => {
-                next_street_name = DealerAction::River;
+            StreetName::Turn => {
+                next_street_name = StreetName::River;
                 self.board_cards.push(self.deck.pop().unwrap());
             },
-            DealerAction::River => {
-                next_street_name = DealerAction::End;
+            StreetName::River => {
+                next_street_name = StreetName::End;
                 self.run_showdown();
             },
-            DealerAction::End => (),
+            StreetName::End => (),
             _ => panic!("Invalid street"),
         };
 
