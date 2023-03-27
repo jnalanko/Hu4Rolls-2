@@ -1,36 +1,62 @@
-use std::error::Error;
-use tokio::net::TcpStream;
-use tokio_tungstenite::{connect_async, tungstenite::Message};
-use serde::{Deserialize, Serialize};
-use serde_json::Result as JsonResult;
-use futures_util::sink::SinkExt;
-use futures_util::stream::StreamExt;
+use std::collections::HashMap;
+use std::convert::Infallible;
+use std::sync::Arc;
+use tokio::sync::{mpsc, RwLock};
+use warp::{ws::Message, Filter, Rejection};
 
-#[derive(Debug, Deserialize, Serialize)]
-struct Event {
-    name: String,
-    data: String,
+mod handler;
+mod ws;
+
+type Result<T> = std::result::Result<T, Rejection>;
+type Clients = Arc<RwLock<HashMap<String, Client>>>;
+
+#[derive(Debug, Clone)]
+pub struct Client {
+    pub user_id: usize,
+    pub topics: Vec<String>,
+    pub sender: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>>,
 }
 
+// https://github.com/zupzup/warp-websockets-example
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    let (mut socket, _) = connect_async("wss://example.com").await?;
-    let event = Event {
-        name: "subscribe".to_string(),
-        data: "some_data".to_string(),
-    };
-    let message = Message::Text(serde_json::to_string(&event)?);
-    socket.send(message).await?;
+async fn main() {
+    let clients: Clients = Arc::new(RwLock::new(HashMap::new()));
 
-    while let Some(message) = socket.next().await {
-        let message = message?;
-        if let Message::Text(text) = message {
-            let event: JsonResult<Event> = serde_json::from_str(&text);
-            if let Ok(event) = event {
-                println!("{:?}", event);
-            }
-        }
-    }
+    let health_route = warp::path!("health").and_then(handler::health_handler);
 
-    Ok(())
+    let register = warp::path("register");
+    let register_routes = register
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(with_clients(clients.clone()))
+        .and_then(handler::register_handler)
+        .or(register
+            .and(warp::delete())
+            .and(warp::path::param())
+            .and(with_clients(clients.clone()))
+            .and_then(handler::unregister_handler));
+
+    let publish = warp::path!("publish")
+        .and(warp::body::json())
+        .and(with_clients(clients.clone()))
+        .and_then(handler::publish_handler);
+
+    let ws_route = warp::path("ws")
+        .and(warp::ws())
+        .and(warp::path::param())
+        .and(with_clients(clients.clone()))
+        .and_then(handler::ws_handler);
+
+    let routes = health_route
+        .or(register_routes)
+        .or(ws_route)
+        .or(publish)
+        .with(warp::cors().allow_any_origin());
+
+    warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;
+}
+
+fn with_clients(clients: Clients) -> impl Filter<Extract = (Clients,), Error = Infallible> + Clone {
+    warp::any().map(move || clients.clone())
 }
