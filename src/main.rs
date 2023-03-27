@@ -336,7 +336,9 @@ fn play() {
     let mut stdin = std::io::stdin();
     let deck: Vec<Card> = Card::generate_shuffled_deck().to_vec();
     let mut hand = Hand::new(deck, 1000, 1000, 5);
-    
+    let options = hand.get_available_actions();
+    dbg!(&options);    
+
     while !hand.finished(){
         let active_street_actions = *hand.split_by_street().last().unwrap();
         let (btn_added_chips,bb_added_chips,minimum_raise_size, active_player) = hand.get_street_status(active_street_actions);
@@ -351,8 +353,6 @@ fn play() {
         println!();
 
         let options = hand.get_available_actions();
-        dbg!(&options);
-
         let call_to_amount = match options.iter().find(|&x| match x{
             ActionOption::Call(amount) => true,
             _ => false,
@@ -387,7 +387,10 @@ fn play() {
 
         if let Some(action) = user_action{
             match hand.submit_action(action){
-                Ok(_) => (),
+                Ok(_) => {
+                    let options = hand.get_available_actions();
+                    dbg!(options);
+                },
                 Err(e) => println!("{}", e),
             }
         } else {
