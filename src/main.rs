@@ -134,7 +134,7 @@ impl Hand{
         let mut bb_added_chips: u64 = 0;
         let mut minimum_raise_size: u64 = 0;
 
-        for action in active_street_actions{
+        for action in active_street_actions[1..].iter(){
             let bigger_added_chips_before_action = max(btn_added_chips, bb_added_chips);
 
             // Get a reference to the added chips of the active player
@@ -223,35 +223,6 @@ impl Hand{
         valid_actions
     }
 
-    // Todo: repeated code with get_available_actions
-    fn get_active_player(&self) -> Position{
-        let (street_action_index, street) = self.hand_history.iter().enumerate().rev().find(
-            |&(_, &x)| match x{
-                Action::Deal(_) => true,
-                _ => false,
-            }
-        ).unwrap();
-
-        let street_actions = &self.hand_history[street_action_index.. ];
-
-        let mut active_player = match street{
-            Action::Deal(DealerAction::Start) => Position::Button,
-            Action::Deal(_) => Position::BigBlind,
-            _ => panic!("Invalid street"),
-        };
-
-        if street_actions.len() % 2 == 0{
-            // If the number of actions is even, the active player is the one who is not the active player.
-            // (because the first action is the dealer action).
-            active_player = match active_player{
-                Position::Button => Position::BigBlind,
-                Position::BigBlind => Position::Button,
-            };
-        }
-
-        active_player
-    }
-
     fn deal_next_step(&mut self){
         // Find the last element in the hand history that is a Deal action
         let street = self.hand_history.iter().rev().find(
@@ -309,7 +280,6 @@ impl Hand{
 
         let mut active_player = Position::Button;
         for action in &self.hand_history{
-            println!("Processing action: {:?}", action);
             match action{
                 Action::Deal(street) => {
                     // New street -> reset the active player and the current street totals
@@ -330,7 +300,6 @@ impl Hand{
                         Position::Button => cur_street_button_total = *amount,
                         Position::BigBlind => cur_street_bb_total = *amount,
                     }
-                    dbg!(&active_player, &cur_street_bb_total, &cur_street_button_total);
                 },    
                 Action::Raise(amount) => {
                     match active_player{
@@ -378,10 +347,12 @@ fn play() {
     let mut hand = Hand::new(deck, 1000, 1000, 5);
     
     while !hand.finished(){
+        let active_street_actions = *hand.split_by_street().last().unwrap();
+        let (btn_added_chips,bb_added_chips,minimum_raise_size, active_player) = hand.get_street_status(active_street_actions);
         println!("Pot, BB, BTN: {}, {}, {}", hand.pot, hand.bb_stack, hand.btn_stack);
         println!("Button has: {} {}", hand.btn_hole_cards.0.to_string(), hand.btn_hole_cards.1.to_string());
         println!("BB has: {} {}", hand.bb_hole_cards.0.to_string(), hand.bb_hole_cards.1.to_string());
-        println!("Action is on: {:?}", hand.get_active_player());
+        println!("Street status (btn added, bb added, minraise, to act): {} {} {} {:?}", btn_added_chips, bb_added_chips, minimum_raise_size, active_player);
         print!("Board: ");
         for card in &hand.board_cards{
             print!("{} ", card.to_string());
