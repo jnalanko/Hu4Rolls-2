@@ -1,9 +1,23 @@
 [package]
-name = "RustPoker"
+name = "rust_poker"
 version = "0.1.0"
 edition = "2021"
+
+[[bin]]
+name = "CLI"
+path = "src/main.rs"
+
+[[bin]]
+name = "server"
+path = "src/server.rs"
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 poker = "0.4.1"
+tokio = { version = "1.16.1", features = ["full"] }
+tokio-tungstenite = "0.16.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.69"
+futures-util = "0.3.19"
