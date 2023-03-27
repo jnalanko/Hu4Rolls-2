@@ -4,6 +4,7 @@ use poker::{cards, Card, EvalClass, Evaluator, Rank};
 mod street;
 mod common;
 mod hand;
+mod game;
 
 use street::{Action, ActionOption};
 use hand::Hand;

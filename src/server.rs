@@ -14,11 +14,13 @@ use poker::{cards, Card, EvalClass, Evaluator, Rank};
 mod street;
 mod common;
 mod hand;
+mod game;
 
 use street::{Action, ActionOption};
 use hand::Hand;
+use game::Game;
 
-type GameState = Arc<RwLock<Hand>>;
+type GameState = Arc<RwLock<Game>>;
 
 #[derive(Debug, Clone)]
 pub struct Client {
@@ -33,7 +35,7 @@ pub struct Client {
 async fn main() {
 
     let deck: Vec<Card> = Card::generate_shuffled_deck().to_vec();
-    let gamestate = Arc::new(RwLock::new(Hand::new(deck, 1000, 1000, 5)));
+    let gamestate = Arc::new(RwLock::new(Game::new()));
 
     let clients: Clients = Arc::new(RwLock::new(HashMap::new()));
 

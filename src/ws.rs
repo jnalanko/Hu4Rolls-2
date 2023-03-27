@@ -7,6 +7,8 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::{Message, WebSocket};
 
+use crate::common::Position;
+
 #[derive(Deserialize, Debug)]
 pub struct TopicsRequest {
     topics: Vec<String>,
@@ -53,15 +55,7 @@ async fn client_msg(id: &str, msg: Message, clients: &Clients, gamestate: &GameS
     let mut locked = clients.write().await;
     if let Some(v) = locked.get_mut(id) {
         if let Some(sender) = &v.sender {
-            let hand = gamestate.read().await;
-            let street = hand.streets.last().unwrap();
-            street.get_available_actions();
-            
-            let A = format!("Pot, BB, BTN: {}, {}, {}", hand.pot, hand.bb_stack, hand.btn_stack);
-            let B = format!("Button has: {} {}", hand.btn_hole_cards.0.to_string(), hand.btn_hole_cards.1.to_string());
-            let C = format!("BB has: {} {}", hand.bb_hole_cards.0.to_string(), hand.bb_hole_cards.1.to_string());
-            let to_client = format!("{}\n{}\n{}\n", A, B, C);
-
+            let to_client = gamestate.read().await.get_state_string(Position::Button); // TODO: change Position::Button
             let _ = sender.send(Ok(Message::text(to_client)));
         }
     }
