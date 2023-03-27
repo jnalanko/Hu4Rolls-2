@@ -38,5 +38,58 @@ impl Game{
 
         state
     }
+
+    // Returns the message to the user
+    pub fn process_user_command(&mut self, command: &String, from_who: Position) -> String{
+        let tokens = command.split_whitespace().collect::<Vec<&str>>();
+
+        let street = self.current_hand.streets.last().unwrap();
+        let options = street.get_available_actions();
+        let call_to_amount = match options.iter().find(|&x| match x{
+            ActionOption::Call(_) => true,
+            _ => false,
+        }) {
+            Some(ActionOption::Call(amount)) => *amount,
+            _ => 0, // Todo: make this None or something
+        };
+
+        if tokens.len() == 0{
+            return self.get_state_string(from_who);
+        }
+
+        let user_action =
+        if tokens.len() == 1 {
+            match tokens.first().unwrap(){
+                &"fold" => Some(Action::Fold),
+                &"check" => Some(Action::Check),
+                &"call" => Some(Action::Call(call_to_amount)),
+                &_ => None,
+            }
+        } else if tokens.len() == 2 {
+            // Actions that require an amount
+            let amount = tokens[1].parse::<u64>().unwrap();
+            match tokens.first().unwrap(){
+                &"bet" => Some(Action::Bet(amount)),
+                &"raise" => Some(Action::Raise(amount)),
+                &_ => None,
+            }
+        } else{ // Three or more tokens -> invalid
+            None
+        };
+
+        // Submit the action and return the response
+        if let Some(action) = user_action{
+            match self.current_hand.submit_action(action){
+                Ok(_) => {
+                    let options = self.current_hand.streets.last().unwrap().get_available_actions();
+                    format!("{:?}", options)
+                },
+                Err(e) => format!("{}", e),
+            }
+        } else {
+            format!("Invalid action")
+        }
+
+    }
         
 }

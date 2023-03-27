@@ -46,6 +46,8 @@ pub async fn client_connection(ws: WebSocket, id: String, clients: Clients, mut 
 }
 
 async fn client_msg(id: &str, msg: Message, clients: &Clients, gamestate: &GameState) {
+
+    let from_who = Position::Button; // TODO
     println!("received message from {}: {:?}", id, msg);
     let message = match msg.to_str() {
         Ok(v) => v,
@@ -55,8 +57,8 @@ async fn client_msg(id: &str, msg: Message, clients: &Clients, gamestate: &GameS
     let mut locked = clients.write().await;
     if let Some(v) = locked.get_mut(id) {
         if let Some(sender) = &v.sender {
-            let to_client = gamestate.read().await.get_state_string(Position::Button); // TODO: change Position::Button
-            let _ = sender.send(Ok(Message::text(to_client)));
+            let answer = gamestate.write().await.process_user_command(&message.to_owned(), from_who);
+            let _ = sender.send(Ok(Message::text(answer)));
         }
     }
 }
