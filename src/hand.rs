@@ -1,4 +1,4 @@
-use poker::{cards, Card, EvalClass, Evaluator, Rank};
+use poker::{cards, Card, EvalClass, Evaluator, Rank, Eval};
 use crate::street::{Action, ActionOption, ActionResult, Street, StreetName};
 
 pub struct Hand{
@@ -21,7 +21,15 @@ pub struct Hand{
 
 }
 
-pub enum ShowdownResult{
+#[derive(Debug)]
+pub struct ShowdownResult{
+    winner: Winner,
+    btn_eval: Eval,
+    bb_eval: Eval,
+}
+
+#[derive(Debug)]
+pub enum Winner{
     ButtonWins,
     BigBlindWins,
     SplitPot,
@@ -73,19 +81,21 @@ impl Hand{
         dbg!(bb_hand_eval);
 
         if btn_hand_eval.is_better_than(bb_hand_eval){
-            ShowdownResult::ButtonWins
+            ShowdownResult{winner: Winner::ButtonWins, btn_eval: btn_hand_eval, bb_eval: bb_hand_eval}
         } else if btn_hand_eval.is_worse_than(bb_hand_eval){
-            ShowdownResult::BigBlindWins
+            ShowdownResult{winner: Winner::BigBlindWins, btn_eval: btn_hand_eval, bb_eval: bb_hand_eval}
         } else {
-            ShowdownResult::SplitPot
+            ShowdownResult{winner: Winner::SplitPot, btn_eval: btn_hand_eval, bb_eval: bb_hand_eval}
         }
 
     }
 
-    pub fn goto_next_street(&mut self){
+    pub fn goto_next_street(&mut self) -> Option<ShowdownResult>{
 
         let street_name = self.streets.last().unwrap().street;
         let mut next_street_name = StreetName::Preflop;
+
+        let mut showdown_result: Option<ShowdownResult> = None;
 
         match street_name {
             StreetName::Preflop => {
@@ -104,13 +114,15 @@ impl Hand{
             },
             StreetName::River => {
                 next_street_name = StreetName::End;
-                self.run_showdown();
+                showdown_result = Some(self.run_showdown());
             },
             StreetName::End => (),
             _ => panic!("Invalid street"),
         };
 
         self.streets.push(Street::new(next_street_name, self.sb_size*2, self.btn_stack, self.bb_stack));
+
+        showdown_result
     }
 
     pub fn update_pot_and_stacks(&mut self){
@@ -134,7 +146,10 @@ impl Hand{
         self.bb_stack = bb_stack;
     }
   
-    pub fn submit_action(&mut self, action: Action) -> Result<(), String>{
+    // Returns Ok(None) if action was valid and hand did not finish yet
+    // Returns Ok(ShowdownResult) if action was valid and hand finished
+    // Otherwise returns an error message as Err(String)
+    pub fn submit_action(&mut self, action: Action) -> Result<Option<ShowdownResult>, String>{
 
         let street = self.streets.last_mut().unwrap();
 
@@ -145,19 +160,19 @@ impl Hand{
         // Apply the action
         let result = street.submit_action(action);
 
-        // Check the result and initiate next street if necessary
-        match result{
+        // Advance the hand to the next stage, if required.
+        let ret_val: Result<Option<ShowdownResult>, String> = match result{
             Ok(res) => match res{
-                ActionResult::BettingClosed => self.goto_next_street(),
-                ActionResult::BettingOpen => (),
+                ActionResult::BettingClosed => Ok(self.goto_next_street()), // Returns showdown if hand is finished
+                ActionResult::BettingOpen => Ok(None),
             }
             Err(e) => return Err(e),
-        }
+        };
 
         // Update the pot and stacks
         self.update_pot_and_stacks();
 
-        Ok(())
+        ret_val
 
     }
 

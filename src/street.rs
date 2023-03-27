@@ -66,7 +66,6 @@ impl Street{
     pub fn get_first_to_act(&self) -> Position{
         match self.street{
             StreetName::Preflop => Position::Button,
-            StreetName::End => panic!("Hand has ended already"),
             _ => Position::BigBlind,
         }
     }

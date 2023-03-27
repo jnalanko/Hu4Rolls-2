@@ -1,6 +1,6 @@
 use crate::common::Position;
 use crate::street::{Action, ActionOption};
-use crate::hand::Hand;
+use crate::hand::{Hand, ShowdownResult};
 use poker::{cards, Card, EvalClass, Evaluator, Rank};
 
 pub struct Game{
@@ -80,9 +80,14 @@ impl Game{
         // Submit the action and return the response
         if let Some(action) = user_action{
             match self.current_hand.submit_action(action){
-                Ok(_) => {
-                    let options = self.current_hand.streets.last().unwrap().get_available_actions();
-                    format!("{:?}", options)
+                Ok(showdown) => {
+                    match showdown{
+                        Some(res) => format!("Showdown: {:?}", res),
+                        None => {
+                            let options = self.current_hand.streets.last().unwrap().get_available_actions();
+                            format!("{:?}", options)
+                        }
+                    }
                 },
                 Err(e) => format!("{}", e),
             }
