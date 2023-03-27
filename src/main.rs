@@ -3,7 +3,7 @@ use std::io::BufRead;
 use std::cmp::max as max; 
 use std::cmp::min as min;
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum Position{
     Button,
     BigBlind,
@@ -161,10 +161,7 @@ impl Hand{
             }
 
             // Switch active player
-            active_player = match active_player{
-                Position::Button => Position::BigBlind,
-                Position::BigBlind => Position::Button,
-            };
+            active_player = self.other_player(active_player)
         }
 
         (btn_added_chips, bb_added_chips, minimum_raise_size, active_player)
@@ -182,9 +179,7 @@ impl Hand{
     fn get_available_actions(&self) -> Vec<ActionOption>{
 
         let active_street_actions = *self.split_by_street().last().unwrap();
-        let street = self.extract_dealer_action(active_street_actions);
-        let mut active_player = self.get_first_to_act(street);
-
+        
         let (btn_added_chips,bb_added_chips,minimum_raise_size, active_player) = self.get_street_status(active_street_actions);
 
         let active_player_stack = match active_player{
@@ -223,6 +218,13 @@ impl Hand{
         valid_actions
     }
 
+    fn other_player(&self, player: Position) -> Position{
+        match player{
+            Position::Button => Position::BigBlind,
+            Position::BigBlind => Position::Button,
+        }
+    }
+
     fn deal_next_step(&mut self){
         // Find the last element in the hand history that is a Deal action
         let street = self.hand_history.iter().rev().find(
@@ -257,15 +259,25 @@ impl Hand{
   
     fn submit_action(&mut self, action: Action){
         self.hand_history.push(action);
+        let active_street_actions = *self.split_by_street().last().unwrap();
+        let street = self.extract_dealer_action(active_street_actions);
+        let active_player = self.get_first_to_act(street);
+        let last_to_act = self.other_player(active_player);
         match action{
             Action::Fold => self.deal_next_step(),
             Action::Check => {
-                if self.hand_history.len() >= 2 && self.hand_history[self.hand_history.len() - 2] == Action::Check{
+                if active_player == last_to_act{
                     self.deal_next_step();
                 }
             },
             Action::Call(amount) => {
-                self.deal_next_step();
+                // Next step is dealt after a call unless we are before the flop
+                // and the call is a limp from the button
+                if street == DealerAction::Start && active_player == Position::Button && amount == 2*self.sb_size{
+                    // Limp from the button -> no next step
+                } else{
+                    self.deal_next_step();
+                }
             },
             _ => ()
         }
