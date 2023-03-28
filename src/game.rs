@@ -36,7 +36,7 @@ impl Game{
 
     pub fn new_with_stacks_and_sb(btn_stack: u64, bb_stack: u64, sb_size: u64) -> Game{
         let deck: Vec<Card> = Card::generate_shuffled_deck().to_vec();
-        let hand = Hand::new(deck, btn_stack - sb_size, bb_stack - sb_size*2, sb_size);
+        let hand = Hand::new(deck, btn_stack, bb_stack, sb_size);
         Game{current_hand: hand, button_seat: 0}
     }
 
@@ -140,7 +140,7 @@ mod tests{
         assert_eq!(state.bb_size, 10);
         assert_eq!(state.bb_hole_cards, None); // Opponent's cards are not revealed
         assert_eq!(state.board_cards.len(), 0);
-        assert_eq!(state.available_actions, vec![ActionOption::Fold, ActionOption::Call(10), ActionOption::Raise(11,600)]);
+        assert_eq!(state.available_actions, vec![ActionOption::Fold, ActionOption::Call(10), ActionOption::Raise(20,500)]);
         assert_eq!(state.active_player, Position::Button);
 
 

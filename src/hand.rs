@@ -43,7 +43,7 @@ impl Hand{
         let btn_hole_cards = (deck.pop().unwrap(), deck.pop().unwrap());
         let bb_hole_cards = (deck.pop().unwrap(), deck.pop().unwrap());
         let board_cards = Vec::new();
-        let pot = sb_size * 3;
+        let pot = 0;
 
         let mut streets = Vec::<Street>::new();
 
@@ -53,17 +53,21 @@ impl Hand{
 
         streets.push(preflop);
 
+        let mut hand = 
         Hand{btn_hole_cards, 
-            bb_hole_cards, 
-            board_cards, 
-            deck, 
-            sb_size, 
-            btn_start_stack: btn_stack, 
-            btn_stack, 
-            bb_start_stack: bb_stack,
-            bb_stack, 
-            pot, 
-            streets}
+             bb_hole_cards, 
+             board_cards, 
+             deck, 
+             sb_size, 
+             btn_start_stack: btn_stack, 
+             btn_stack, 
+             bb_start_stack: bb_stack,
+             bb_stack, 
+             pot, 
+             streets};
+
+        hand.update_pot_and_stacks(); // Updates the pot and stacks after the blinds are posted
+        hand
     }
 
     pub fn run_showdown(&mut self) -> ShowdownResult{

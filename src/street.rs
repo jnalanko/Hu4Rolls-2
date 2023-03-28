@@ -93,7 +93,10 @@ impl Street{
                 Action::Fold => (),
                 Action::Check => (),
                 Action::Call(amount) => *active_player_added_chips = *amount,
-                Action::PostBlind(amount) => *active_player_added_chips = *amount,
+                Action::PostBlind(amount) => {
+                    *active_player_added_chips = *amount;
+                    minimum_raise_size = 2 * amount;
+                }
                 Action::Bet(amount) => {
                     minimum_raise_size = 2 * amount;
                     *active_player_added_chips = *amount;
@@ -124,6 +127,11 @@ impl Street{
             Position::BigBlind => self.bb_stack,
         };
 
+        let active_player_initial_stack = match active_player{
+            Position::Button => self.btn_start_stack,
+            Position::BigBlind => self.bb_start_stack,
+        };
+
         // Figure out valid actions
         let mut valid_actions =Vec::<ActionOption>::new();
 
@@ -142,8 +150,8 @@ impl Street{
         }
 
         // Can we raise?
-        if btn_added_chips + bb_added_chips > 0{ // TODO check that our stack has more chips than the bigger stack
-            valid_actions.push(ActionOption::Raise(minimum_raise_size, active_player_stack));
+        if btn_added_chips + bb_added_chips > 0 && active_player_stack > max(btn_added_chips, bb_added_chips){
+            valid_actions.push(ActionOption::Raise(minimum_raise_size, active_player_initial_stack));
         }
         
         // Can we check?
