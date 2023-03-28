@@ -113,7 +113,8 @@ impl Game{
         };
 
         if tokens.len() == 0{
-            return self.get_state_string(from_seat);
+            //return self.get_state_string(from_seat);
+            return self.get_state_json(from_seat);
         }
 
         let user_action =
