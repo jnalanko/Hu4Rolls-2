@@ -113,7 +113,7 @@ impl Game{
         let action: Action = match serde_json::from_str(input){
             Ok(action) => action,
             Err(e) => {
-                return format!("{{action_response: \"{}\"}}", e);
+                return format!("{{\"action_response\": \"{}\"}}", e);
             }
         };
 
@@ -123,11 +123,11 @@ impl Game{
                 match showdown{
                     Some(res) => format!("Showdown: {:?}", res), // Showdown
                     None => { // No showdown, but valid action
-                        "{action_response: \"ok\"}".to_string()
+                        "{\"action_response\": \"ok\"}".to_string()
                     }
                 }
             },
-            Err(e) => format!("{{action_response: {}}}", e), // Action was not allowed
+            Err(e) => format!("{{\"action_response\": \"{}\"}}", e), // Action was not allowed
         }
     
     }
