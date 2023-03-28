@@ -40,7 +40,10 @@ pub async fn publish_handler(body: Event, clients: Clients) -> Result<impl Reply
 }
 
 pub async fn register_handler(body: RegisterRequest, clients: Clients) -> Result<impl Reply> {
-    let user_id = body.user_id;
+    let user_id = body.user_id; // Used as the seat in the table
+    if user_id >= 2{
+        panic!("Only 2 players allowed");   
+    }
     let uuid = Uuid::new_v4().as_simple().to_string();
 
     register_client(uuid.clone(), user_id, clients).await;

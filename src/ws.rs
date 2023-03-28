@@ -25,6 +25,8 @@ pub async fn client_connection(ws: WebSocket, id: String, clients: Clients, mut 
         }
     }));
 
+    let seat = client.user_id as u8;
+
     client.sender = Some(client_sender);
     clients.write().await.insert(id.clone(), client);
 
@@ -38,16 +40,15 @@ pub async fn client_connection(ws: WebSocket, id: String, clients: Clients, mut 
                 break;
             }
         };
-        client_msg(&id, msg, &clients, &gamestate).await;
+        client_msg(&id, seat, msg, &clients, &gamestate).await;
     }
 
     clients.write().await.remove(&id);
     println!("{} disconnected", id);
 }
 
-async fn client_msg(id: &str, msg: Message, clients: &Clients, gamestate: &GameState) {
+async fn client_msg(id: &str, seat: u8, msg: Message, clients: &Clients, gamestate: &GameState) {
 
-    let from_who = Position::Button; // TODO
     println!("received message from {}: {:?}", id, msg);
     let message = match msg.to_str() {
         Ok(v) => v,
@@ -57,7 +58,7 @@ async fn client_msg(id: &str, msg: Message, clients: &Clients, gamestate: &GameS
     let mut locked = clients.write().await;
     if let Some(v) = locked.get_mut(id) {
         if let Some(sender) = &v.sender {
-            let answer = gamestate.write().await.process_user_command(&message.to_owned(), from_who);
+            let answer = gamestate.write().await.process_user_command(&message.to_owned(), seat);
             let _ = sender.send(Ok(Message::text(answer)));
         }
     }

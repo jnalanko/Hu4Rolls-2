@@ -5,24 +5,25 @@ use poker::{cards, Card, EvalClass, Evaluator, Rank};
 
 pub struct Game{
     current_hand: Hand,
+    button_seat: u8, // 0 or 1
 }
 
 impl Game{
     pub fn new() -> Game{
         let deck: Vec<Card> = Card::generate_shuffled_deck().to_vec();
         let mut hand = Hand::new(deck, 1000, 1000, 5);
-        Game{current_hand: hand}
+        Game{current_hand: hand, button_seat: 0}
     }
 
-    pub fn get_state_string(&self, for_who: Position) -> String{
+    pub fn get_state_string(&self, for_seat: u8) -> String{
         let hand = &self.current_hand;
         let street = hand.streets.last().unwrap();
         street.get_available_actions();
         let (btn_added_chips,bb_added_chips,minimum_raise_size, active_player) = street.get_street_status();
         
         let A = format!("Pot, BB, BTN: {}, {}, {}", hand.pot, hand.bb_stack, hand.btn_stack);
-        let B = format!("Button has: {} {}", hand.btn_hole_cards.0.to_string(), hand.btn_hole_cards.1.to_string());
-        let C = format!("BB has: {} {}", hand.bb_hole_cards.0.to_string(), hand.bb_hole_cards.1.to_string());
+        let button_hole_cards = format!("You are on the button with: {} {}", hand.btn_hole_cards.0.to_string(), hand.btn_hole_cards.1.to_string());
+        let bb_hole_cards = format!("You are on the big blind with:: {} {}", hand.bb_hole_cards.0.to_string(), hand.bb_hole_cards.1.to_string());
         let D = format!("Street status (btn added, bb added, to act): {} {} {:?}", btn_added_chips, bb_added_chips, active_player);
         let E = format!("{:?}", street.get_available_actions());
 
@@ -32,15 +33,14 @@ impl Game{
             board_string.push_str(&card_str);
         }
 
-        let state = format!("{}\n{}\n{}\n{}\n{}\n{}\n", A, B, C, D, E, board_string);
-
-        // TODO: don't send the opponent's hole cards
-
-        state
+        match for_seat == self.button_seat {
+            true => format!("{}\n{}\n{}\n{}\n{}\n", A, button_hole_cards, D, E, board_string),
+            false => format!("{}\n{}\n{}\n{}\n{}\n", A, bb_hole_cards, D, E, board_string),
+        }
     }
 
     // Returns the message to the user
-    pub fn process_user_command(&mut self, command: &String, from_who: Position) -> String{
+    pub fn process_user_command(&mut self, command: &String, from_seat: u8) -> String{
         let tokens = command.split_whitespace().collect::<Vec<&str>>();
 
         let street = self.current_hand.streets.last().unwrap();
@@ -54,7 +54,7 @@ impl Game{
         };
 
         if tokens.len() == 0{
-            return self.get_state_string(from_who);
+            return self.get_state_string(from_seat);
         }
 
         let user_action =
@@ -84,8 +84,9 @@ impl Game{
                     match showdown{
                         Some(res) => format!("Showdown: {:?}", res),
                         None => {
-                            let options = self.current_hand.streets.last().unwrap().get_available_actions();
-                            format!("{:?}", options)
+                            format!("{:?}", action)
+                            //let options = self.current_hand.streets.last().unwrap().get_available_actions();
+                            //format!("{:?}", options)
                         }
                     }
                 },
