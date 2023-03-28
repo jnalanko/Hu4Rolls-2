@@ -1,4 +1,4 @@
-use crate::{ws, Client, Clients, Result, GameState, Games};
+use crate::{ws, MyClient, MyClients, Result, GameState, Games};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use crate::Game;
@@ -33,6 +33,13 @@ pub struct CreateGameResponse {
     message: String
 }
 
+#[derive(Deserialize, Debug)]
+pub struct JoinRequest {
+    game_id: usize,
+    seat: usize,
+}
+
+/*
 pub async fn publish_handler(body: Event, clients: Clients) -> Result<impl Reply> {
     clients
         .read()
@@ -50,8 +57,9 @@ pub async fn publish_handler(body: Event, clients: Clients) -> Result<impl Reply
         });
 
     Ok(StatusCode::OK)
-}
+}*/
 
+/*
 pub async fn register_handler(body: RegisterRequest, clients: Clients) -> Result<impl Reply> {
     let user_id = body.user_id; // Used as the seat in the table
     if user_id >= 2{
@@ -81,8 +89,9 @@ pub async fn unregister_handler(id: String, clients: Clients) -> Result<impl Rep
     clients.write().await.remove(&id);
     Ok(StatusCode::OK)
 }
+*/
 
-pub async fn ws_handler(ws: warp::ws::Ws, id: String, clients: Clients, gamestate: GameState) -> Result<impl Reply> {
+pub async fn ws_handler(ws: warp::ws::Ws, id: String, clients: MyClients, gamestate: GameState) -> Result<impl Reply> {
     let client = clients.read().await.get(&id).cloned();
     match client {
         Some(c) => Ok(ws.on_upgrade(move |socket| ws::client_connection(socket, id, clients, c, gamestate))),
@@ -107,6 +116,20 @@ pub async fn create_game_handler(body: CreateGameRequest, games: Games) -> Resul
         }))
     }
 }
+
+/*
+pub async fn join_handler(body: JoinRequest, clients: Clients, games: Games) -> Result<impl Reply> {
+    clients.write().await.insert(
+        id,
+        Client {
+            user_id,
+            topics: vec![String::from("cats")],
+            sender: None,
+        },
+    );
+}
+*/
+
 pub async fn health_handler() -> Result<impl Reply> {
     Ok(StatusCode::OK)
 }

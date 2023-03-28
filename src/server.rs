@@ -9,6 +9,7 @@ mod ws;
 
 type Result<T> = std::result::Result<T, Rejection>;
 type Clients = Arc<RwLock<HashMap<String, Client>>>;
+type MyClients = Arc<RwLock<HashMap<String, MyClient>>>;
 
 use poker::{cards, Card, EvalClass, Evaluator, Rank};
 mod street;
@@ -30,6 +31,13 @@ pub struct Client {
     pub sender: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>>,
 }
 
+#[derive(Debug, Clone)]
+pub struct MyClient {
+    pub game_id: u64,
+    pub seat: u64,
+    pub sender: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>>,
+}
+
 // https://github.com/zupzup/warp-websockets-example
 
 #[tokio::main]
@@ -39,21 +47,19 @@ async fn main() {
     let gamestate = Arc::new(RwLock::new(Game::new()));
     let games = Arc::new(RwLock::new(HashMap::<u64, Game>::new()));
 
-    let clients: Clients = Arc::new(RwLock::new(HashMap::new()));
+    let myclients: MyClients = Arc::new(RwLock::new(HashMap::new()));
 
     let health_route = warp::path!("health").and_then(handler::health_handler);
 
-    let register = warp::path("register");
-    let register_routes = register
+/*
+    let join = warp::path("join");
+    let join_routes = join
         .and(warp::post())
         .and(warp::body::json())
         .and(with_clients(clients.clone()))
-        .and_then(handler::register_handler)
-        .or(register
-            .and(warp::delete())
-            .and(warp::path::param())
-            .and(with_clients(clients.clone()))
-            .and_then(handler::unregister_handler));
+        .and(with_games(games.clone()))
+        .and_then(handler::join_handler);
+*/
 
     let create_game = warp::path("create_game");
     let create_game_routes = create_game
@@ -61,30 +67,23 @@ async fn main() {
         .and(warp::body::json())
         .and(with_games(games.clone()))
         .and_then(handler::create_game_handler);
-    
-    let publish = warp::path!("publish")
-        .and(warp::body::json())
-        .and(with_clients(clients.clone()))
-        .and_then(handler::publish_handler);
 
     let ws_route = warp::path("ws")
         .and(warp::ws())
         .and(warp::path::param())
-        .and(with_clients(clients.clone()))
+        .and(with_clients(myclients.clone()))
         .and(with_gamestate(gamestate.clone()))
         .and_then(handler::ws_handler);
 
     let routes = health_route
-        .or(register_routes)
         .or(create_game_routes)
         .or(ws_route)
-        .or(publish)
         .with(warp::cors().allow_any_origin());
 
     warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;
 }
 
-fn with_clients(clients: Clients) -> impl Filter<Extract = (Clients,), Error = Infallible> + Clone {
+fn with_clients(clients: MyClients) -> impl Filter<Extract = (MyClients,), Error = Infallible> + Clone {
     warp::any().map(move || clients.clone())
 }
 

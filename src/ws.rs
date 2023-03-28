@@ -1,5 +1,5 @@
 
-use crate::{Client, Clients, GameState};
+use crate::{MyClient, MyClients, GameState};
 use futures::{FutureExt, StreamExt};
 use serde::Deserialize;
 use serde_json::from_str;
@@ -14,7 +14,7 @@ pub struct TopicsRequest {
     topics: Vec<String>,
 }
 
-pub async fn client_connection(ws: WebSocket, id: String, clients: Clients, mut client: Client, gamestate: GameState) {
+pub async fn client_connection(ws: WebSocket, id: String, clients: MyClients, mut client: MyClient, gamestate: GameState) {
     let (client_ws_sender, mut client_ws_rcv) = ws.split();
     let (client_sender, client_rcv) = mpsc::unbounded_channel();
 
@@ -25,7 +25,7 @@ pub async fn client_connection(ws: WebSocket, id: String, clients: Clients, mut 
         }
     }));
 
-    let seat = client.user_id as u8;
+    let seat = client.seat as u8;
 
     client.sender = Some(client_sender);
     clients.write().await.insert(id.clone(), client);
@@ -47,7 +47,7 @@ pub async fn client_connection(ws: WebSocket, id: String, clients: Clients, mut 
     println!("{} disconnected", id);
 }
 
-async fn client_msg(id: &str, seat: u8, msg: Message, clients: &Clients, gamestate: &GameState) {
+async fn client_msg(id: &str, seat: u8, msg: Message, clients: &MyClients, gamestate: &GameState) {
 
     println!("received message from {}: {:?}", id, msg);
     let message = match msg.to_str() {
