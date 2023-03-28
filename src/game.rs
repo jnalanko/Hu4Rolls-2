@@ -59,11 +59,11 @@ impl Game{
             button_seat: button_seat,
             sb_size: self.current_hand.sb_size,
             btn_hole_cards: match for_seat{
-                button_seat => Some((button_card1, button_card2)),
+                _ if for_seat == button_seat => Some((button_card1, button_card2)),
                 _ => None,
             },
             bb_hole_cards: match for_seat{
-                button_seat => None,
+                _ if for_seat == button_seat => None,
                 _ => Some((bb_card1, bb_card2)),
             },
             board_cards: board,
