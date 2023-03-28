@@ -109,6 +109,16 @@ impl Game{
             return self.get_state_json(from_seat);
         }
 
+        // See if it is the user's turn to act
+        let (_,_,_,active_player) = self.current_hand.streets.last().unwrap().get_street_status();
+        let player_position = match from_seat == self.button_seat{
+            true => Position::Button,
+            false => Position::BigBlind,
+        };
+        if player_position != active_player{
+            return format!("{{\"action_response\": \"It is not your turn to act\"}}");
+        }
+
         // Deserialize input as Action
         let action: Action = match serde_json::from_str(input){
             Ok(action) => action,
