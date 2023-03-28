@@ -30,13 +30,13 @@ pub struct GameState{
 impl Game{
     pub fn new() -> Game{
         let deck: Vec<Card> = Card::generate_shuffled_deck().to_vec();
-        let mut hand = Hand::new(deck, 1000, 1000, 5);
+        let mut hand = Hand::new(deck, 995, 990, 5);
         Game{current_hand: hand, button_seat: 0}
     }
 
     pub fn new_with_stacks_and_sb(btn_stack: u64, bb_stack: u64, sb_size: u64) -> Game{
         let deck: Vec<Card> = Card::generate_shuffled_deck().to_vec();
-        let hand = Hand::new(deck, btn_stack, bb_stack, sb_size);
+        let hand = Hand::new(deck, btn_stack - sb_size, bb_stack - sb_size*2, sb_size);
         Game{current_hand: hand, button_seat: 0}
     }
 
@@ -133,8 +133,8 @@ mod tests{
         assert_eq!(state.pot_size, 5 + 10); // SB + BB
         assert_eq!(state.btn_stack, 500 - 5); // Subtract the small blind
         assert_eq!(state.bb_stack, 600 - 10); // Subtract the big blind
-        assert_eq!(state.btn_added_chips_this_street, 0);
-        assert_eq!(state.bb_added_chips_this_street, 0);
+        assert_eq!(state.btn_added_chips_this_street, 5);
+        assert_eq!(state.bb_added_chips_this_street, 10);
         assert_eq!(state.button_seat, 0);
         assert_eq!(state.sb_size, 5);
         assert_eq!(state.bb_size, 10);
