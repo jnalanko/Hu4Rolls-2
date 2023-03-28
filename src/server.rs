@@ -21,7 +21,6 @@ use street::{Action, ActionOption};
 use hand::Hand;
 use game::Game;
 
-type GameState = Arc<RwLock<Game>>;
 type Games = Arc<RwLock<HashMap<u64, Game>>>;
 
 #[derive(Debug, Clone)]
@@ -83,10 +82,6 @@ async fn main() {
 
 fn with_clients(clients: MyClients) -> impl Filter<Extract = (MyClients,), Error = Infallible> + Clone {
     warp::any().map(move || clients.clone())
-}
-
-fn with_gamestate(gamestate: GameState) -> impl Filter<Extract = (GameState,), Error = Infallible> + Clone {
-    warp::any().map(move || gamestate.clone())
 }
 
 fn with_games(games: Games) -> impl Filter<Extract = (Games,), Error = Infallible> + Clone {

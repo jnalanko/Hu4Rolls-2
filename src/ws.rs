@@ -1,5 +1,5 @@
 
-use crate::{MyClient, MyClients, GameState};
+use crate::{MyClient, MyClients};
 use futures::{FutureExt, StreamExt};
 use serde::Deserialize;
 use serde_json::from_str;
