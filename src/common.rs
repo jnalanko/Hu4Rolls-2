@@ -1,4 +1,6 @@
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+use serde::{Serialize};
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum Position{
     Button,
     BigBlind,

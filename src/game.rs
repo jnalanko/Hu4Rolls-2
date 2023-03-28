@@ -19,10 +19,12 @@ pub struct GameState{
     bb_added_chips_this_street: u64,
     button_seat: u8,
     sb_size: u64,
+    bb_size: u64,
     btn_hole_cards: Option<(String, String)>,
     bb_hole_cards: Option<(String, String)>,
     board_cards: Vec<String>,
     available_actions: Vec<ActionOption>,
+    active_player: Position,
 }
 
 impl Game{
@@ -58,6 +60,7 @@ impl Game{
             bb_added_chips_this_street: bb_added_chips,
             button_seat: button_seat,
             sb_size: self.current_hand.sb_size,
+            bb_size: self.current_hand.sb_size*2,
             btn_hole_cards: match for_seat{
                 _ if for_seat == button_seat => Some((button_card1, button_card2)),
                 _ => None,
@@ -68,6 +71,7 @@ impl Game{
             },
             board_cards: board,
             available_actions: self.current_hand.streets.last().unwrap().get_available_actions(),
+            active_player,
         };
 
         serde_json::to_string(&gamestate).unwrap()
