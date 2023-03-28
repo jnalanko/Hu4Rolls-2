@@ -84,4 +84,4 @@ To get the current game state, send the string `state`. It looks like this:
 }
 ```
 
-To play the game, send back any of the available actions as JSON. The server will respond with `{"action_response": "ok"}` if the action was accepted. Otherwise, there will be an error message in place of "ok".
+To play the game, send back any of the available actions as JSON. Raise and bet actions will list the minimum and maximum bet/raise. For those, you should only return only one number between the minimum and the maximum. If the action was accepted, the server will respond with `{"action_response": "ok"}`. Otherwise, there will be an error message in place of "ok".
