@@ -113,7 +113,7 @@ impl Game{
         let action: Action = match serde_json::from_str(input){
             Ok(action) => action,
             Err(e) => {
-                return format!("Error parsing user action: {}", e);
+                return format!("{{action_response: \"{}\"}}", e);
             }
         };
 
