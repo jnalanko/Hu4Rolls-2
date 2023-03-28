@@ -22,7 +22,7 @@ pub enum StreetName{
     End
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ActionOption{
     Fold,
     Check,

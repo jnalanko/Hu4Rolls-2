@@ -1,7 +1,7 @@
 use crate::common::Position;
 use crate::street::{Action, ActionOption};
 use crate::hand::{Hand, ShowdownResult};
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use poker::{Card};
 
 pub struct Game{
@@ -10,7 +10,7 @@ pub struct Game{
 }
 
 // Game state struct passed to players
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct GameState{
     pot_size: u64,
     btn_stack: u64,
@@ -118,4 +118,32 @@ impl Game{
     
     }
         
+}
+
+#[cfg(test)]
+mod tests{
+
+    use super::*;
+
+    #[test]
+    fn initial_state(){
+        let game = Game::new_with_stacks_and_sb(500, 600, 5);
+        let state: GameState = serde_json::from_str(&game.get_state_json(0)).unwrap();
+
+        assert_eq!(state.pot_size, 5 + 10); // SB + BB
+        assert_eq!(state.btn_stack, 500 - 5); // Subtract the small blind
+        assert_eq!(state.bb_stack, 600 - 10); // Subtract the big blind
+        assert_eq!(state.btn_added_chips_this_street, 0);
+        assert_eq!(state.bb_added_chips_this_street, 0);
+        assert_eq!(state.button_seat, 0);
+        assert_eq!(state.sb_size, 5);
+        assert_eq!(state.bb_size, 10);
+        assert_eq!(state.bb_hole_cards, None); // Opponent's cards are not revealed
+        assert_eq!(state.board_cards.len(), 0);
+        assert_eq!(state.available_actions, vec![ActionOption::Fold, ActionOption::Call(10), ActionOption::Raise(11,600)]);
+        assert_eq!(state.active_player, Position::Button);
+
+
+    }
+
 }
