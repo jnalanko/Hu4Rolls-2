@@ -103,7 +103,7 @@ pub async fn create_game_handler(body: CreateGameRequest, games: Games) -> Resul
         let newgame = Game::new_with_stacks_and_sb(stacks.0, stacks.1, sb_size);
         games.write().await.insert(id, newgame);
         Ok(json(&CreateGameResponse {
-            message: format!("Game created with id {}", id),
+            message: format!("Game created with id {id}, sb_size {sb_size}, stacks ({}, {})", stacks.0, stacks.1),
         }))
     }
 }

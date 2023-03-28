@@ -76,6 +76,7 @@ async fn main() {
 
     let routes = health_route
         .or(register_routes)
+        .or(create_game_routes)
         .or(ws_route)
         .or(publish)
         .with(warp::cors().allow_any_origin());
