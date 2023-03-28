@@ -16,7 +16,7 @@ fn play() {
     let options = hand.streets.last().unwrap().get_available_actions();
     dbg!(&options);
 
-    while !hand.finished(){
+    loop {
         let street = hand.streets.last().unwrap();
         let (btn_added_chips,bb_added_chips,minimum_raise_size, active_player) = street.get_street_status();
         println!("Pot, BB, BTN: {}, {}, {}", hand.pot, hand.bb_stack, hand.btn_stack);

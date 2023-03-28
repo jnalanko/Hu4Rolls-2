@@ -36,6 +36,7 @@ pub enum ActionResult{
     BettingClosed,
 }
 
+// This struct represents the state of a single betting round
 #[derive(Debug)]
 pub struct Street{
     pub street: StreetName,

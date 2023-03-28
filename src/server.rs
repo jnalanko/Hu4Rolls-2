@@ -8,17 +8,13 @@ mod handler;
 mod ws;
 
 type Result<T> = std::result::Result<T, Rejection>;
-type Clients = Arc<RwLock<HashMap<String, Client>>>;
 type MyClients = Arc<RwLock<HashMap<String, MyClient>>>;
 
-use poker::{cards, Card, EvalClass, Evaluator, Rank};
 mod street;
 mod common;
 mod hand;
 mod game;
 
-use street::{Action, ActionOption};
-use hand::Hand;
 use game::Game;
 
 type Games = Arc<RwLock<HashMap<u64, Game>>>;
@@ -42,8 +38,6 @@ pub struct MyClient {
 #[tokio::main]
 async fn main() {
 
-    let deck: Vec<Card> = Card::generate_shuffled_deck().to_vec();
-    let gamestate = Arc::new(RwLock::new(Game::new()));
     let games = Arc::new(RwLock::new(HashMap::<u64, Game>::new()));
 
     let myclients: MyClients = Arc::new(RwLock::new(HashMap::new()));

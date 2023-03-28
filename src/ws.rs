@@ -1,20 +1,13 @@
 
 use crate::{MyClient, MyClients};
 use futures::{FutureExt, StreamExt};
-use serde::Deserialize;
-use serde_json::from_str;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::{Message, WebSocket};
 
 use crate::Games;
-use crate::common::Position;
 
-#[derive(Deserialize, Debug)]
-pub struct TopicsRequest {
-    topics: Vec<String>,
-}
-
+// Create a new task to handle message from/to the client
 pub async fn client_connection(ws: WebSocket, id: String, clients: MyClients, mut client: MyClient, games: Games) {
     let (client_ws_sender, mut client_ws_rcv) = ws.split();
     let (client_sender, client_rcv) = mpsc::unbounded_channel();
@@ -34,6 +27,7 @@ pub async fn client_connection(ws: WebSocket, id: String, clients: MyClients, mu
 
     println!("{} connected", id);
 
+    // The main loop that processes each message to the client
     while let Some(result) = client_ws_rcv.next().await {
         let msg = match result {
             Ok(msg) => msg,
@@ -61,11 +55,11 @@ async fn client_msg(websocket_id: &str, game_id: u64, seat: u8, msg: Message, cl
     if let Some(v) = locked.get_mut(websocket_id) {
         if let Some(sender) = &v.sender {
             match games.write().await.get_mut(&game_id){ // Find the game
-                Some(game) => {
+                Some(game) => { // Game found
                     let answer = game.process_user_command(&message.to_owned(), seat);
                     let _ = sender.send(Ok(Message::text(answer)));
                 },
-                None => {
+                None => { // Game not found
                     let _ = sender.send(Ok(Message::text("Game not found")));
                 }
             }

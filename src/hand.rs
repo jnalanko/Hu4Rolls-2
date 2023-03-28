@@ -1,6 +1,7 @@
 use poker::{cards, Card, EvalClass, Evaluator, Rank, Eval};
 use crate::street::{Action, ActionOption, ActionResult, Street, StreetName};
 
+// This struct represents the state of a single hand of poker
 pub struct Hand{
 
     pub btn_hole_cards: (Card, Card),
@@ -174,10 +175,6 @@ impl Hand{
 
         ret_val
 
-    }
-
-    pub fn finished(&self) -> bool{
-        false // Todo
     }
 
 }
