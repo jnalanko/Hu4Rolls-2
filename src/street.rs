@@ -1,4 +1,5 @@
 use std::cmp::max as max;
+use serde::Serialize;
 
 use crate::common::{Position, other_player};
 
@@ -21,7 +22,7 @@ pub enum StreetName{
     End
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum ActionOption{
     Fold,
     Check,
