@@ -5,7 +5,10 @@ TODO:
 * Front-end
 * Update stacks at the end of the hand and deal the next hand
 * Send the state back to the players after every update
-* Fix lots of obvious bugs
+
+Known bugs:
+
+* If the opponent bets more than our stack, calling will crash the server.
 
 ## Running the server
 

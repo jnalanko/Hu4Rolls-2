@@ -142,8 +142,6 @@ mod tests{
         assert_eq!(state.board_cards.len(), 0);
         assert_eq!(state.available_actions, vec![ActionOption::Fold, ActionOption::Call(10), ActionOption::Raise(20,500)]);
         assert_eq!(state.active_player, Position::Button);
-
-
     }
 
 }
