@@ -1,6 +1,7 @@
-use crate::{ws, Client, Clients, Result, GameState};
+use crate::{ws, Client, Clients, Result, GameState, Games};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use crate::Game;
 use warp::{http::StatusCode, reply::json, ws::Message, Reply};
 
 #[derive(Deserialize, Debug)]
@@ -18,6 +19,18 @@ pub struct Event {
     topic: String,
     user_id: Option<usize>,
     message: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct CreateGameRequest {
+    id: u64,
+    sb_size: u64,
+    stacks: (u64, u64), // Seat 0, seat 1
+}
+
+#[derive(Serialize, Debug)]
+pub struct CreateGameResponse {
+    message: String
 }
 
 pub async fn publish_handler(body: Event, clients: Clients) -> Result<impl Reply> {
@@ -44,6 +57,7 @@ pub async fn register_handler(body: RegisterRequest, clients: Clients) -> Result
     if user_id >= 2{
         panic!("Only 2 players allowed");   
     }
+
     let uuid = Uuid::new_v4().as_simple().to_string();
 
     register_client(uuid.clone(), user_id, clients).await;
@@ -76,6 +90,23 @@ pub async fn ws_handler(ws: warp::ws::Ws, id: String, clients: Clients, gamestat
     }
 }
 
+pub async fn create_game_handler(body: CreateGameRequest, games: Games) -> Result<impl Reply> {
+    let id = body.id;
+    let sb_size = body.sb_size;
+    let stacks = body.stacks;
+
+    if games.read().await.contains_key(&id){
+        Ok(json(&CreateGameResponse {
+            message: format!("Game with id {} already exists", id),
+        }))
+    } else{
+        let newgame = Game::new_with_stacks_and_sb(stacks.0, stacks.1, sb_size);
+        games.write().await.insert(id, newgame);
+        Ok(json(&CreateGameResponse {
+            message: format!("Game created with id {}", id),
+        }))
+    }
+}
 pub async fn health_handler() -> Result<impl Reply> {
     Ok(StatusCode::OK)
 }

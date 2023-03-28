@@ -21,6 +21,7 @@ use hand::Hand;
 use game::Game;
 
 type GameState = Arc<RwLock<Game>>;
+type Games = Arc<RwLock<HashMap<u64, Game>>>;
 
 #[derive(Debug, Clone)]
 pub struct Client {
@@ -36,6 +37,7 @@ async fn main() {
 
     let deck: Vec<Card> = Card::generate_shuffled_deck().to_vec();
     let gamestate = Arc::new(RwLock::new(Game::new()));
+    let games = Arc::new(RwLock::new(HashMap::<u64, Game>::new()));
 
     let clients: Clients = Arc::new(RwLock::new(HashMap::new()));
 
@@ -53,6 +55,13 @@ async fn main() {
             .and(with_clients(clients.clone()))
             .and_then(handler::unregister_handler));
 
+    let create_game = warp::path("create_game");
+    let create_game_routes = create_game
+        .and(warp::post())
+        .and(warp::body::json())
+        .and(with_games(games.clone()))
+        .and_then(handler::create_game_handler);
+    
     let publish = warp::path!("publish")
         .and(warp::body::json())
         .and(with_clients(clients.clone()))
@@ -80,4 +89,8 @@ fn with_clients(clients: Clients) -> impl Filter<Extract = (Clients,), Error = I
 
 fn with_gamestate(gamestate: GameState) -> impl Filter<Extract = (GameState,), Error = Infallible> + Clone {
     warp::any().map(move || gamestate.clone())
+}
+
+fn with_games(games: Games) -> impl Filter<Extract = (Games,), Error = Infallible> + Clone {
+    warp::any().map(move || games.clone())
 }

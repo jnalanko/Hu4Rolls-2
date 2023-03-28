@@ -15,6 +15,12 @@ impl Game{
         Game{current_hand: hand, button_seat: 0}
     }
 
+    pub fn new_with_stacks_and_sb(btn_stack: u64, bb_stack: u64, sb_size: u64) -> Game{
+        let deck: Vec<Card> = Card::generate_shuffled_deck().to_vec();
+        let mut hand = Hand::new(deck, btn_stack, bb_stack, sb_size);
+        Game{current_hand: hand, button_seat: 0}
+    }
+
     pub fn get_state_string(&self, for_seat: u8) -> String{
         let hand = &self.current_hand;
         let street = hand.streets.last().unwrap();
