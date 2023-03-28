@@ -1,9 +1,9 @@
 use std::cmp::max as max;
-use serde::Serialize;
+use serde::{Serialize,Deserialize};
 
 use crate::common::{Position, other_player};
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Deserialize)]
 pub enum Action{
     Fold,
     Check,

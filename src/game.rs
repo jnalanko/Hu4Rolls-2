@@ -103,63 +103,29 @@ impl Game{
     }
 
     // Returns the message to the user
-    pub fn process_user_command(&mut self, command: &String, from_seat: u8) -> String{
-        let tokens = command.split_whitespace().collect::<Vec<&str>>();
+    pub fn process_user_command(&mut self, input: &String, from_seat: u8) -> String{
 
-        let street = self.current_hand.streets.last().unwrap();
-        let options = street.get_available_actions();
-        let call_to_amount = match options.iter().find(|&x| match x{
-            ActionOption::Call(_) => true,
-            _ => false,
-        }) {
-            Some(ActionOption::Call(amount)) => *amount,
-            _ => 0, // Todo: make this None or something
-        };
-
-        if tokens.len() == 0{
-            //return self.get_state_string(from_seat);
-            return self.get_state_json(from_seat);
-        }
-
-        let user_action =
-        if tokens.len() == 1 {
-            match tokens.first().unwrap(){
-                &"fold" => Some(Action::Fold),
-                &"check" => Some(Action::Check),
-                &"call" => Some(Action::Call(call_to_amount)),
-                &_ => None,
+        // Deserialize input as Action
+        let action: Action = match serde_json::from_str(input){
+            Ok(action) => action,
+            Err(e) => {
+                return format!("Error parsing user action: {}", e);
             }
-        } else if tokens.len() == 2 {
-            // Actions that require an amount
-            let amount = tokens[1].parse::<u64>().unwrap();
-            match tokens.first().unwrap(){
-                &"bet" => Some(Action::Bet(amount)),
-                &"raise" => Some(Action::Raise(amount)),
-                &_ => None,
-            }
-        } else{ // Three or more tokens -> invalid
-            None
         };
 
         // Submit the action and return the response
-        if let Some(action) = user_action{
-            match self.current_hand.submit_action(action){
-                Ok(showdown) => {
-                    match showdown{
-                        Some(res) => format!("Showdown: {:?}", res),
-                        None => {
-                            format!("{:?}", action)
-                            //let options = self.current_hand.streets.last().unwrap().get_available_actions();
-                            //format!("{:?}", options)
-                        }
+        match self.current_hand.submit_action(action){
+            Ok(showdown) => {
+                match showdown{
+                    Some(res) => format!("Showdown: {:?}", res), // Showdown
+                    None => { // No showdown, but valid action
+                        "{action_response: \"ok\"}".to_string()
                     }
-                },
-                Err(e) => format!("{}", e),
-            }
-        } else {
-            format!("Invalid action")
+                }
+            },
+            Err(e) => format!("{{action_response: {}}}", e), // Action was not allowed
         }
-
+    
     }
         
 }
