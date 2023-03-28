@@ -35,8 +35,13 @@ pub struct CreateGameResponse {
 
 #[derive(Deserialize, Debug)]
 pub struct JoinRequest {
-    game_id: usize,
-    seat: usize,
+    game_id: u64,
+    seat: u64,
+}
+
+#[derive(Serialize, Debug)]
+pub struct JoinResponse {
+    url: String,
 }
 
 /*
@@ -117,18 +122,25 @@ pub async fn create_game_handler(body: CreateGameRequest, games: Games) -> Resul
     }
 }
 
-/*
-pub async fn join_handler(body: JoinRequest, clients: Clients, games: Games) -> Result<impl Reply> {
+
+pub async fn join_handler(body: JoinRequest, clients: MyClients) -> Result<impl Reply> {
+
+    let uuid = Uuid::new_v4().as_simple().to_string(); // Websocket id
+
     clients.write().await.insert(
-        id,
-        Client {
-            user_id,
-            topics: vec![String::from("cats")],
+        uuid.clone(),
+        MyClient {
+            game_id: body.game_id,
+            seat: body.seat,
             sender: None,
         },
     );
+
+    Ok(json(&RegisterResponse {
+        url: format!("ws://127.0.0.1:8000/ws/{}", uuid),
+    }))
 }
-*/
+
 
 pub async fn health_handler() -> Result<impl Reply> {
     Ok(StatusCode::OK)

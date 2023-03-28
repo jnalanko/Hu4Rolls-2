@@ -51,15 +51,12 @@ async fn main() {
 
     let health_route = warp::path!("health").and_then(handler::health_handler);
 
-/*
     let join = warp::path("join");
     let join_routes = join
         .and(warp::post())
         .and(warp::body::json())
-        .and(with_clients(clients.clone()))
-        .and(with_games(games.clone()))
+        .and(with_clients(myclients.clone()))
         .and_then(handler::join_handler);
-*/
 
     let create_game = warp::path("create_game");
     let create_game_routes = create_game
