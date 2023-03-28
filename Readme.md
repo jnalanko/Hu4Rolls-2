@@ -1,6 +1,11 @@
 # Heads up poker app
 
-Work in Progress
+TODO:
+
+* Front-end
+* Update stacks at the end of the hand and deal the next hand
+* Send the state back to the players after every update
+* Fix lots of obvious bugs
 
 ## Running the server
 
@@ -79,4 +84,4 @@ To get the current game state, send the string `state`. It looks like this:
 }
 ```
 
-To play the game, send back any of the available actions as JSON. The server will respond with `{"action_response": "ok"}` if the action was accepted. If not, then there is an error message in place of "ok".
+To play the game, send back any of the available actions as JSON. The server will respond with `{"action_response": "ok"}` if the action was accepted. Otherwise, there will be an error message in place of "ok".
