@@ -69,7 +69,7 @@ async fn main() {
         .and(warp::ws())
         .and(warp::path::param())
         .and(with_clients(myclients.clone()))
-        .and(with_gamestate(gamestate.clone()))
+        .and(with_games(games.clone()))
         .and_then(handler::ws_handler);
 
     let routes = health_route
