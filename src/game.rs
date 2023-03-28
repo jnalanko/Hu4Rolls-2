@@ -105,6 +105,10 @@ impl Game{
     // Returns the message to the user
     pub fn process_user_command(&mut self, input: &String, from_seat: u8) -> String{
 
+        if input == "state"{
+            return self.get_state_json(from_seat);
+        }
+
         // Deserialize input as Action
         let action: Action = match serde_json::from_str(input){
             Ok(action) => action,
