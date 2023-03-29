@@ -40,7 +40,7 @@ pub enum ActionResult{
 }
 
 // This struct represents the state of a single betting round
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Street{
     pub street: StreetName,
     pub actions: Vec<Action>,
@@ -326,6 +326,10 @@ mod tests {
         assert!(actions.contains(&ActionOption::Raise(20, 2000)));
         assert!(actions.contains(&ActionOption::Fold));
 
+        // Check that raising keeps the action open (street is cloned so this has no effect on the original street)
+        assert!(street.clone().submit_action(Action::Raise(150)).unwrap() == ActionResult::BettingOpen);
+
+        // Check that checking closes the action
         assert!(street.submit_action(Action::Check).unwrap() == ActionResult::BettingClosed);
         
         // Check final status
