@@ -86,7 +86,7 @@ impl Hand{
 
         if btn_hand_eval.is_better_than(bb_hand_eval){
             (showdown, Some(Position::Button))
-        } else if btn_hand_eval.is_worse_than(bb_hand_eval){
+        } else if bb_hand_eval.is_better_than(btn_hand_eval){
             (showdown, Some(Position::BigBlind))
         } else {
             (showdown, None)
@@ -154,7 +154,7 @@ impl Hand{
         match winner{
             Some(Position::Button) => (self.btn_start_stack + bb_added, self.bb_start_stack - bb_added),
             Some(Position::BigBlind) => (self.btn_start_stack - btn_added, self.bb_start_stack + btn_added),
-            None => (self.bb_start_stack, self.btn_start_stack), // Split pot -> No change
+            None => (self.btn_start_stack, self.bb_start_stack), // Split pot -> No change
         }
     }
   
@@ -183,6 +183,8 @@ impl Hand{
                     if streetname == StreetName::River{
                         let (showdown, winner) = self.run_showdown();
                         let (btn_new_stack, bb_new_stack) = self.get_stacks_after_hand(winner);
+
+                        dbg!(&showdown, winner, btn_new_stack, bb_new_stack);
 
                         // Return result
                         let hand_result = 
