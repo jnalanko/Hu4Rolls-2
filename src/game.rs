@@ -228,10 +228,30 @@ mod tests{
         // Rig a deck to give both players AA and a straight flush on board
         let deck: Vec<Card> = cards!("2s 3s 4s 5s 6s Ah Ad Ac As").try_collect().unwrap();
         let hand = Hand::new(deck, 500, 600, 5);
-        let game = Game{
+        let mut game = Game{
             current_hand: hand,
             button_seat: 0,
         };
+
+        game.submit_action(Action::PostBlind(5), 0).unwrap();
+        game.submit_action(Action::PostBlind(10), 1).unwrap();
+
+        game.submit_action(Action::Call(10), 0).unwrap();
+        game.submit_action(Action::Check, 1).unwrap();
+
+        game.submit_action(Action::Check, 1).unwrap();
+        game.submit_action(Action::Check, 0).unwrap();
+
+        game.submit_action(Action::Check, 1).unwrap();
+        game.submit_action(Action::Check, 0).unwrap();
+
+        game.submit_action(Action::Check, 1).unwrap();
+        game.submit_action(Action::Check, 0).unwrap();
+
+        // Now we should have a new hand with button and the bb reversed, with no changes to the stacks
+        assert_eq!(game.current_hand.btn_stack, 600);
+        assert_eq!(game.current_hand.bb_stack, 500);
+
     }
 
 }
