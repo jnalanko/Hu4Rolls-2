@@ -210,22 +210,3 @@ mod tests{
     }
 
 }
-
-/*
-// Game state struct passed to players
-#[derive(Serialize, Deserialize)]
-pub struct GameState{
-    pot_size: u64,
-    btn_stack: u64,
-    bb_stack: u64,
-    btn_added_chips_this_street: u64,
-    bb_added_chips_this_street: u64,
-    button_seat: u8,
-    sb_size: u64,
-    bb_size: u64,
-    btn_hole_cards: Option<(String, String)>,
-    bb_hole_cards: Option<(String, String)>,
-    board_cards: Vec<String>,
-    available_actions: Vec<ActionOption>,
-    active_player: Position,
-}*/
