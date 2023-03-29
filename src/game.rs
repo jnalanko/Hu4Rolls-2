@@ -165,4 +165,48 @@ mod tests{
         assert_eq!(res.btn_next_hand_stack, 500 - 5);
     }
 
+    #[test]
+    fn test_finishing_a_hand_and_dealing_the_next_one(){
+        let mut game = Game::new_with_stacks_and_sb(500, 600, 5);
+        assert!(game.current_hand.submit_action(Action::PostBlind(5)).is_ok());
+        assert!(game.current_hand.submit_action(Action::PostBlind(10)).is_ok());
+
+        // Button raises
+        assert!(game.current_hand.submit_action(Action::Raise(40)).is_ok());
+        // BB folds
+        assert!(game.current_hand.submit_action(Action::Fold).is_ok());
+
+        let state: GameState = serde_json::from_str(&game.get_state_json(0)).unwrap();
+        assert_eq!(state.pot_size, 5 + 10);
+        assert_eq!(state.btn_stack, 600 - 10); // The button of the previous hand is now the big blind
+        assert_eq!(state.bb_stack, 500 + 10); // The big blind of the previous hand is now the button
+        assert_eq!(state.btn_added_chips_this_street, 0);
+        assert_eq!(state.bb_added_chips_this_street, 0);
+        assert_eq!(state.button_seat, 1); // The button of the previous hand is now the big blind
+        assert_eq!(state.sb_size, 5);
+        assert_eq!(state.bb_size, 10);
+        assert_eq!(state.bb_hole_cards, None); // Opponent's cards are not revealed
+        assert_eq!(state.board_cards.len(), 0);
+        assert_eq!(state.active_player, Position::Button);
+    }
+
 }
+
+/*
+// Game state struct passed to players
+#[derive(Serialize, Deserialize)]
+pub struct GameState{
+    pot_size: u64,
+    btn_stack: u64,
+    bb_stack: u64,
+    btn_added_chips_this_street: u64,
+    bb_added_chips_this_street: u64,
+    button_seat: u8,
+    sb_size: u64,
+    bb_size: u64,
+    btn_hole_cards: Option<(String, String)>,
+    bb_hole_cards: Option<(String, String)>,
+    board_cards: Vec<String>,
+    available_actions: Vec<ActionOption>,
+    active_player: Position,
+}*/
