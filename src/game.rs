@@ -126,7 +126,7 @@ mod tests{
     use super::*;
 
     #[test]
-    fn initial_state(){
+    fn test_initial_state(){
         let mut game = Game::new_with_stacks_and_sb(500, 600, 5);
         assert!(game.current_hand.submit_action(Action::PostBlind(5)).is_ok());
         assert!(game.current_hand.submit_action(Action::PostBlind(10)).is_ok());
@@ -147,18 +147,16 @@ mod tests{
     }
 
     #[test]
-    fn fold_immediately(){
+    fn test_fold_immediately(){
         let mut game = Game::new_with_stacks_and_sb(500, 600, 5);
         assert!(game.current_hand.submit_action(Action::PostBlind(5)).is_ok());
         assert!(game.current_hand.submit_action(Action::PostBlind(10)).is_ok());
 
         let res = game.current_hand.submit_action(Action::Fold).unwrap().unwrap();
-        /*match res.winner{
-            Winner::BigBlindWins => assert_eq!(res.pot, 5 + 10 + 500 + 600),
-            Winner::BigBlind => assert_eq!(res.pot, 5 + 10),
-            _ => assert!(false),
-        }*/
-        
+        assert_eq!(res.winner, Some(Position::BigBlind));
+        assert!(res.showdown.is_none());
+        assert_eq!(res.bb_next_hand_stack, 600 + 5);
+        assert_eq!(res.btn_next_hand_stack, 500 - 5);
     }
 
 }
