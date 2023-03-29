@@ -239,15 +239,24 @@ mod tests {
 
     #[test]
     fn test_bet_raise_all_in_call(){
+
+        // Sequence: bb bets 10, btn raises to 100, bb goes all in, btn calls
+
         let mut street = Street::new(StreetName::Flop, 10, 1000, 2000);
         
         // Big blind's turn
         let actions = street.get_available_actions();
-        dbg!(&actions);
         assert_eq!(actions.len(), 3);
         assert!(actions.contains(&ActionOption::Check));
         assert!(actions.contains(&ActionOption::Bet(10,2000)));
         assert!(actions.contains(&ActionOption::Fold));
+
+        let (btn_added_chips, bb_added_chips, _, active_player) = street.get_street_status();
+        assert_eq!(btn_added_chips, 0);
+        assert_eq!(bb_added_chips, 0);
+        assert_eq!(street.btn_stack, 1000);
+        assert_eq!(street.bb_stack, 2000);
+        assert_eq!(active_player, Position::BigBlind);
 
         match street.submit_action(Action::Bet(10)){
             Ok(ActionResult::BettingOpen) => (),
@@ -261,47 +270,54 @@ mod tests {
         assert!(street.get_available_actions().contains(&ActionOption::Raise(20,1000)));
         assert!(street.get_available_actions().contains(&ActionOption::Fold));
 
+        let (btn_added_chips, bb_added_chips, _, active_player) = street.get_street_status();
+        assert_eq!(btn_added_chips, 0);
+        assert_eq!(bb_added_chips, 10);
+        assert_eq!(street.btn_stack, 1000);
+        assert_eq!(street.bb_stack, 1990);
+        assert_eq!(active_player, Position::Button);
+
         match street.submit_action(Action::Raise(100)){
             Ok(ActionResult::BettingOpen) => (),
             _ => assert!(false),
         }
 
-        // Big Blind's turn
+        // Big blinds's turn
         let actions = street.get_available_actions();
         assert_eq!(actions.len(), 3);
         assert!(street.get_available_actions().contains(&ActionOption::Call(100)));
         assert!(street.get_available_actions().contains(&ActionOption::Raise(190,2000)));
         assert!(street.get_available_actions().contains(&ActionOption::Fold));
 
-        match street.submit_action(Action::Raise(300)){
-            Ok(ActionResult::BettingOpen) => (),
-            _ => assert!(false),
-        }
-
-        // Button's turn
-        let actions = street.get_available_actions();
-        assert_eq!(actions.len(), 3);
-        assert!(street.get_available_actions().contains(&ActionOption::Call(300)));
-        assert!(street.get_available_actions().contains(&ActionOption::Raise(500,1000)));
-        assert!(street.get_available_actions().contains(&ActionOption::Fold));
+        let (btn_added_chips, bb_added_chips, _, active_player) = street.get_street_status();
+        assert_eq!(btn_added_chips, 100);
+        assert_eq!(bb_added_chips, 10);
+        assert_eq!(street.btn_stack, 900);
+        assert_eq!(street.bb_stack, 1990);
+        assert_eq!(active_player, Position::BigBlind);
 
         match street.submit_action(Action::Raise(1000)){ // All in
             Ok(ActionResult::BettingOpen) => (),
             _ => assert!(false),
         }
 
-        // Big Blind's turn
+        // Button's turn
         let actions = street.get_available_actions();
-        assert_eq!(actions.len(), 3);
+        assert_eq!(actions.len(), 2);
         assert!(street.get_available_actions().contains(&ActionOption::Call(1000)));
         assert!(street.get_available_actions().contains(&ActionOption::Fold));
+
+        let (btn_added_chips, bb_added_chips, _, active_player) = street.get_street_status();
+        assert_eq!(btn_added_chips, 100);
+        assert_eq!(bb_added_chips, 1000);
+        assert_eq!(street.btn_stack, 900);
+        assert_eq!(street.bb_stack, 1000);
+        assert_eq!(active_player, Position::Button);
 
         match street.submit_action(Action::Call(1000)){
             Ok(ActionResult::BettingClosed) => (),
             _ => assert!(false),
         }
-
-
     }
 
 }
