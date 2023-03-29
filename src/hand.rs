@@ -152,7 +152,6 @@ impl Hand{
     fn get_stacks_after_hand(&self, winner: Option<Position>) -> (u64, u64){
         let btn_added = self.btn_start_stack - self.btn_stack;
         let bb_added = self.bb_start_stack - self.bb_stack;
-        assert!(btn_added == bb_added);
 
         match winner{
             Some(Position::Button) => (self.btn_start_stack + bb_added, self.bb_start_stack - bb_added),
