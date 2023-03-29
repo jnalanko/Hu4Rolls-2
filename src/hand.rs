@@ -177,11 +177,18 @@ impl Hand{
                 ActionResult::BettingClosed => {
                     if streetname == StreetName::River{
                         let (showdown, winner) = self.run_showdown();
+
+                        // Figure out new stacks for the next hand
+                        let btn_added = self.btn_start_stack - self.btn_stack;
+                        let bb_added = self.bb_start_stack - self.bb_stack;
+                        assert!(btn_added == bb_added);
                         let (bb_new_stack, btn_new_stack) = match winner{
-                            Winner::ButtonWins => (0,0), // TODO
-                            Winner::BigBlindWins => (0,0), // TODO
+                            Winner::ButtonWins => (self.btn_stack + bb_added, self.bb_stack - bb_added),
+                            Winner::BigBlindWins => (self.btn_stack - btn_added, self.bb_stack + btn_added),
                             Winner::SplitPot => (self.bb_start_stack, self.btn_start_stack), // No change
                         };
+
+                        // Return result
                         let hand_result = 
                             HandResult{showdown: Some(showdown), 
                                        winner, 
