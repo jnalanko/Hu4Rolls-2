@@ -1,4 +1,5 @@
 use poker::{cards, Card, EvalClass, Evaluator, Rank, Eval};
+use serde::{Serialize, Deserialize};
 use crate::street::{Action, ActionOption, ActionResult, Street, StreetName};
 use crate::common::{Position, other_player};
 

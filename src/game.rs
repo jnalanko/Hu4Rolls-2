@@ -2,7 +2,7 @@ use crate::common::Position;
 use crate::street::{Action, ActionOption};
 use crate::hand::{Hand, HandResult};
 use serde::{Serialize, Deserialize};
-use poker::{Card};
+use poker::{Card, cards};
 
 pub struct Game{
     current_hand: Hand,
@@ -78,12 +78,9 @@ impl Game{
         
     }
 
-    // Returns the message to the user
-    pub fn process_user_command(&mut self, input: &String, from_seat: u8) -> String{
-
-        if input == "state"{
-            return self.get_state_json(from_seat);
-        }
+    // If the action ends the hand, returns HandResult. Otherwise returns None, unless there
+    // was an error, returns an error message as a string.
+    pub fn submit_action(&mut self, action: Action, from_seat: u8) -> Result<Option<HandResult>, String>{
 
         // See if it is the user's turn to act
         let (_,_,_,active_player) = self.current_hand.streets.last().unwrap().get_street_status();
@@ -91,17 +88,10 @@ impl Game{
             true => Position::Button,
             false => Position::BigBlind,
         };
+        
         if player_position != active_player{
-            return format!("{{\"action_response\": \"It is not your turn to act\"}}");
+            return Err("It is not your turn to act".to_string());
         }
-
-        // Deserialize input as Action
-        let action: Action = match serde_json::from_str(input){
-            Ok(action) => action,
-            Err(e) => {
-                return format!("{{\"action_response\": \"{}\"}}", e);
-            }
-        };
 
         // Submit the action and return the response
         match self.current_hand.submit_action(action){
@@ -114,17 +104,40 @@ impl Game{
                         // New hand: swap stacks between button and sb
                         self.current_hand = Hand::new(deck, res.bb_next_hand_stack, res.btn_next_hand_stack, self.current_hand.sb_size);
                         self.button_seat = 1 - self.button_seat; // Switch who is on the button
-
-                        "{\"action_response\": \"ok\"}".to_string()
+                        Ok(Some(res))
                     }
                     None => { // No showdown, but valid action
-                        "{\"action_response\": \"ok\"}".to_string()
+                        Ok(None)
                     }
                 }
             },
-            Err(e) => format!("{{\"action_response\": \"{}\"}}", e), // Action was not allowed
+            Err(e) => Err(e), // Action was not allowed
         }
-    
+    }
+
+    // Takes a user command and returns a JSON response to the user
+    pub fn process_user_command(&mut self, input: &String, from_seat: u8) -> String{
+
+        if input == "state"{
+            return self.get_state_json(from_seat);
+        }
+
+        // Deserialize input as Action
+        let action: Action = match serde_json::from_str(input){
+            Ok(action) => action,
+            Err(e) => {
+                return format!("{{\"action_response\": \"{}\"}}", e);
+            }
+        };
+
+        match self.submit_action(action , from_seat){
+            Ok(hand_result) => {
+                return "{\"action_response\": \"ok\"}".to_string();
+            },
+            Err(e) => {
+                return format!("{{\"action_response\": \"{}\"}}", e);
+            }
+        }
     }
         
 }
@@ -207,6 +220,18 @@ mod tests{
         assert_eq!(state.btn_hole_cards, None); // Opponent's cards are not revealed
         assert_eq!(state.board_cards.len(), 0);
         assert_eq!(state.active_player, Position::Button);
+    }
+
+    #[test]
+    fn test_split_pot(){
+
+        // Rig a deck to give both players AA and a straight flush on board
+        let deck: Vec<Card> = cards!("2s 3s 4s 5s 6s Ah Ad Ac As").try_collect().unwrap();
+        let hand = Hand::new(deck, 500, 600, 5);
+        let game = Game{
+            current_hand: hand,
+            button_seat: 0,
+        };
     }
 
 }
