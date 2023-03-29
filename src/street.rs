@@ -117,6 +117,15 @@ impl Street{
             active_player = other_player(active_player)
         }
 
+        // If the last action is a call, then both players add equally many chips to the pot.
+        // In particular, in the case of an all in, the call may be smaller than the
+        // raise of the opponent. In this case, the extra chips of the opponent are
+        // not added to the pot.
+        if let Some(Action::Call(amount)) = self.actions.last(){
+            btn_added_chips = *amount;
+            bb_added_chips = *amount;
+        }
+
         (btn_added_chips, bb_added_chips, minimum_raise_size, active_player)
     }
 
@@ -213,17 +222,8 @@ impl Street{
 
         // Update stacks
         let (btn_added_chips, bb_added_chips, _, _) = self.get_street_status();
-        if let Action::Call(call_amount) = action{
-            // If the last action is a call, then both players add equally many chips to the pot.
-            // In particular, in the case of an all in, the call may be smaller than the
-            // raise of the opponent. In this case, the extra chips of the opponent are
-            // not added to the pot.
-            self.btn_stack = self.btn_start_stack - min(btn_added_chips, bb_added_chips);
-            self.bb_stack = self.bb_start_stack - min(btn_added_chips, bb_added_chips);
-        } else{
-            self.btn_stack = self.btn_start_stack - btn_added_chips;
-            self.bb_stack = self.bb_start_stack - bb_added_chips;
-        }
+        self.btn_stack = self.btn_start_stack - btn_added_chips;
+        self.bb_stack = self.bb_start_stack - bb_added_chips;
     
         Ok(result)
 
@@ -414,7 +414,6 @@ mod tests {
 
         // Button's turn
         let actions = street.get_available_actions();
-        dbg!(&actions);
         assert_eq!(actions.len(), 2);
         assert!(street.get_available_actions().contains(&ActionOption::Call(1000))); // Raise was 2000 but we have only 1000 left
         assert!(street.get_available_actions().contains(&ActionOption::Fold));
