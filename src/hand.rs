@@ -48,10 +48,7 @@ impl Hand{
 
         let mut streets = Vec::<Street>::new();
 
-        let mut preflop = Street::new(StreetName::Preflop, 2*sb_size, btn_stack, bb_stack);
-        preflop.submit_action(Action::PostBlind(sb_size)); // Small blind
-        preflop.submit_action(Action::PostBlind(2*sb_size)); // Big blind
-
+        let preflop = Street::new(StreetName::Preflop, 2*sb_size, btn_stack, bb_stack);
         streets.push(preflop);
 
         Hand{btn_hole_cards, 

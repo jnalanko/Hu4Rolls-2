@@ -4,7 +4,7 @@ use serde::{Serialize,Deserialize};
 
 use crate::common::{Position, other_player};
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Action{
     Fold,
     Check,
@@ -14,7 +14,7 @@ pub enum Action{
     Raise(u64), // Raise *to*, not *by*
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum StreetName{
     Preflop,
     Flop,
@@ -41,7 +41,7 @@ pub enum ActionResult{
 }
 
 // This struct represents the state of a single betting round
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Street{
     pub street: StreetName,
     pub actions: Vec<Action>,

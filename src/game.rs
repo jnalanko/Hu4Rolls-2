@@ -10,7 +10,7 @@ pub struct Game{
 }
 
 // Game state struct passed to players
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GameState{
     pot_size: u64,
     btn_stack: u64,
@@ -110,8 +110,11 @@ impl Game{
                     Some(res) => {
                         // Deal a new hand
                         let deck: Vec<Card> = Card::generate_shuffled_deck().to_vec();
-                        self.current_hand = Hand::new(deck, res.btn_next_hand_stack, res.bb_next_hand_stack, self.current_hand.sb_size);
+
+                        // New hand: swap stacks between button and sb
+                        self.current_hand = Hand::new(deck, res.bb_next_hand_stack, res.btn_next_hand_stack, self.current_hand.sb_size);
                         self.button_seat = 1 - self.button_seat; // Switch who is on the button
+
                         "{\"action_response\": \"ok\"}".to_string()
                     }
                     None => { // No showdown, but valid action
@@ -171,17 +174,33 @@ mod tests{
         assert!(game.current_hand.submit_action(Action::PostBlind(5)).is_ok());
         assert!(game.current_hand.submit_action(Action::PostBlind(10)).is_ok());
 
+        let state: GameState = serde_json::from_str(&game.get_state_json(0)).unwrap();
+        dbg!(&state);
         // Button raises
-        assert!(game.current_hand.submit_action(Action::Raise(40)).is_ok());
+        //assert!(game.current_hand.submit_action(Action::Raise(40)).is_ok());
+        assert!(game.process_user_command(&serde_json::to_string(&Action::Raise(40)).unwrap(), 0) == "{\"action_response\": \"ok\"}");
         // BB folds
-        assert!(game.current_hand.submit_action(Action::Fold).is_ok());
+        assert!(game.process_user_command(&serde_json::to_string(&Action::Fold).unwrap(), 1) == "{\"action_response\": \"ok\"}");
+
+        // The first hand should be over now
+
+        assert!(game.current_hand.submit_action(Action::PostBlind(5)).is_ok());
+        assert!(game.current_hand.submit_action(Action::PostBlind(10)).is_ok());
 
         let state: GameState = serde_json::from_str(&game.get_state_json(0)).unwrap();
+        dbg!(&state);
         assert_eq!(state.pot_size, 5 + 10);
-        assert_eq!(state.btn_stack, 600 - 10); // The button of the previous hand is now the big blind
-        assert_eq!(state.bb_stack, 500 + 10); // The big blind of the previous hand is now the button
-        assert_eq!(state.btn_added_chips_this_street, 0);
-        assert_eq!(state.bb_added_chips_this_street, 0);
+
+        // The button is now the big blind of the previous hand
+        // That player lost 10 in the first hand and is now posting the sb of 5
+        assert_eq!(state.btn_stack, 600 - 10 - 5); 
+
+        // The big blind of the previous hand is now the button
+        // That player won 10 in the first hand and is now posting the bb of 10
+        assert_eq!(state.bb_stack, 500 + 10 - 10);
+
+        assert_eq!(state.btn_added_chips_this_street, 5);
+        assert_eq!(state.bb_added_chips_this_street, 10);
         assert_eq!(state.button_seat, 1); // The button of the previous hand is now the big blind
         assert_eq!(state.sb_size, 5);
         assert_eq!(state.bb_size, 10);
