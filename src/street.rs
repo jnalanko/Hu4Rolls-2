@@ -460,4 +460,25 @@ mod tests {
         assert_eq!(street.bb_stack, 2000);
     }
 
+    #[test]
+    fn test_not_enough_chips_to_post_sb(){
+        let mut street = Street::new(StreetName::Preflop, 10, 1, 2);
+
+        let actions = street.get_available_actions();
+        assert_eq!(actions.len(), 0); // Can not do anything
+
+        assert!(street.submit_action(Action::PostBlind(5)).is_err()); // Should fail
+    }
+
+    #[test]
+    fn test_not_enough_chips_to_post_bb(){
+        let mut street = Street::new(StreetName::Preflop, 10, 5, 2);
+
+        assert_eq!(street.submit_action(Action::PostBlind(5)).unwrap(), ActionResult::BettingOpen);
+        let actions = street.get_available_actions();
+
+        assert_eq!(actions.len(), 0); // Can not do anything
+        assert!(street.submit_action(Action::PostBlind(5)).is_err()); // Should fail
+    }
+
 }
