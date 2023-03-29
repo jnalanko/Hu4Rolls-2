@@ -146,6 +146,20 @@ impl Hand{
         self.btn_stack = btn_stack;
         self.bb_stack = bb_stack;
     }
+
+    // Returns the stacks after the chips in the pot have been distributed back to the
+    // players according to the winner. If winner is None, then the pot is split.
+    fn get_stacks_after_hand(&self, winner: Option<Position>) -> (u64, u64){
+        let btn_added = self.btn_start_stack - self.btn_stack;
+        let bb_added = self.bb_start_stack - self.bb_stack;
+        assert!(btn_added == bb_added);
+
+        match winner{
+            Some(Position::Button) => (self.btn_start_stack + bb_added, self.bb_start_stack - bb_added),
+            Some(Position::BigBlind) => (self.btn_start_stack - btn_added, self.bb_start_stack + btn_added),
+            None => (self.bb_start_stack, self.btn_start_stack), // Split pot -> No change
+        }
+    }
   
     // Returns Ok(None) if action was valid and hand did not finish yet
     // Returns Ok(HandResult) if action was valid and hand finished
@@ -171,16 +185,7 @@ impl Hand{
                 ActionResult::BettingClosed => {
                     if streetname == StreetName::River{
                         let (showdown, winner) = self.run_showdown();
-
-                        // Figure out new stacks for the next hand
-                        let btn_added = self.btn_start_stack - self.btn_stack;
-                        let bb_added = self.bb_start_stack - self.bb_stack;
-                        assert!(btn_added == bb_added);
-                        let (bb_new_stack, btn_new_stack) = match winner{
-                            Some(Position::Button) => (self.btn_stack + bb_added, self.bb_stack - bb_added),
-                            Some(Position::BigBlind) => (self.btn_stack - btn_added, self.bb_stack + btn_added),
-                            None => (self.bb_start_stack, self.btn_start_stack), // Split pot -> No change
-                        };
+                        let (btn_new_stack, bb_new_stack) = self.get_stacks_after_hand(winner);
 
                         // Return result
                         let hand_result = 
@@ -196,10 +201,13 @@ impl Hand{
                 },
                 ActionResult::BettingOpen => Ok(None),
                 ActionResult::Fold(player) => {
+                    let winner = other_player(player);
+                    let (btn_new_stack, bb_new_stack) = self.get_stacks_after_hand(Some(winner));
+
                     let res = HandResult{showdown: None, 
-                              winner: Some(other_player(player)),
-                              bb_next_hand_stack: self.bb_start_stack + (self.btn_start_stack - self.btn_stack),
-                              btn_next_hand_stack: self.btn_start_stack};
+                              winner: Some(winner),
+                              bb_next_hand_stack: bb_new_stack,
+                              btn_next_hand_stack: btn_new_stack};
                     Ok(Some(res))
                 },
             }
