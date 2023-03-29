@@ -296,7 +296,7 @@ mod tests {
         assert_eq!(street.bb_stack, 1990);
         assert_eq!(active_player, Position::BigBlind);
 
-        match street.submit_action(Action::Raise(1000)){ // All in
+        match street.submit_action(Action::Raise(2000)){ // All in
             Ok(ActionResult::BettingOpen) => (),
             _ => assert!(false),
         }
@@ -305,20 +305,29 @@ mod tests {
         let actions = street.get_available_actions();
         dbg!(&actions);
         assert_eq!(actions.len(), 2);
-        assert!(street.get_available_actions().contains(&ActionOption::Call(1000)));
+        assert!(street.get_available_actions().contains(&ActionOption::Call(1000))); // Raise was 2000 but we have only 1000 left
         assert!(street.get_available_actions().contains(&ActionOption::Fold));
 
         let (btn_added_chips, bb_added_chips, _, active_player) = street.get_street_status();
         assert_eq!(btn_added_chips, 100);
-        assert_eq!(bb_added_chips, 1000);
+        assert_eq!(bb_added_chips, 2000);
         assert_eq!(street.btn_stack, 900);
-        assert_eq!(street.bb_stack, 1000);
+        assert_eq!(street.bb_stack, 0);
         assert_eq!(active_player, Position::Button);
 
         match street.submit_action(Action::Call(1000)){
             Ok(ActionResult::BettingClosed) => (),
             _ => assert!(false),
         }
+
+        // Check the final state
+
+        let (btn_added_chips, bb_added_chips, _, _) = street.get_street_status();
+        assert_eq!(btn_added_chips, 1000);
+        assert_eq!(bb_added_chips, 2000); // Returning the extra 1000 is not the responsibility of the street
+        assert_eq!(street.btn_stack, 0);
+        assert_eq!(street.bb_stack, 0);
+
     }
 
 }
