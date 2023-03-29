@@ -127,7 +127,9 @@ mod tests{
 
     #[test]
     fn initial_state(){
-        let game = Game::new_with_stacks_and_sb(500, 600, 5);
+        let mut game = Game::new_with_stacks_and_sb(500, 600, 5);
+        assert!(game.current_hand.submit_action(Action::PostBlind(5)).is_ok());
+        assert!(game.current_hand.submit_action(Action::PostBlind(10)).is_ok());
         let state: GameState = serde_json::from_str(&game.get_state_json(0)).unwrap();
 
         assert_eq!(state.pot_size, 5 + 10); // SB + BB
