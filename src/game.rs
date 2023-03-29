@@ -107,7 +107,13 @@ impl Game{
         match self.current_hand.submit_action(action){
             Ok(hand_result) => {
                 match hand_result{
-                    Some(res) => format!("Hand result: {:?}", res), // Showdown
+                    Some(res) => {
+                        // Deal a new hand
+                        let deck: Vec<Card> = Card::generate_shuffled_deck().to_vec();
+                        self.current_hand = Hand::new(deck, res.btn_next_hand_stack, res.bb_next_hand_stack, self.current_hand.sb_size);
+                        self.button_seat = 1 - self.button_seat; // Switch who is on the button
+                        "{\"action_response\": \"ok\"}".to_string()
+                    }
                     None => { // No showdown, but valid action
                         "{\"action_response\": \"ok\"}".to_string()
                     }
