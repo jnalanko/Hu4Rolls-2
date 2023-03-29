@@ -147,7 +147,7 @@ impl Street{
 
         // Can we call?
         if btn_added_chips != bb_added_chips{
-            let amount = min(max(btn_added_chips, bb_added_chips), active_player_stack);
+            let amount = min(max(btn_added_chips, bb_added_chips), active_player_initial_stack);
             valid_actions.push(ActionOption::Call(amount));
         }
 
@@ -303,6 +303,7 @@ mod tests {
 
         // Button's turn
         let actions = street.get_available_actions();
+        dbg!(&actions);
         assert_eq!(actions.len(), 2);
         assert!(street.get_available_actions().contains(&ActionOption::Call(1000)));
         assert!(street.get_available_actions().contains(&ActionOption::Fold));
