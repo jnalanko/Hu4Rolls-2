@@ -61,7 +61,6 @@ impl Hand{
 
         streets.push(preflop);
 
-        let mut hand = 
         Hand{btn_hole_cards, 
              bb_hole_cards, 
              board_cards, 
@@ -72,10 +71,8 @@ impl Hand{
              bb_start_stack: bb_stack,
              bb_stack, 
              pot, 
-             streets};
+             streets}
 
-        hand.update_pot_and_stacks(); // Updates the pot and stacks after the blinds are posted
-        hand
     }
 
     pub fn run_showdown(&mut self) -> (Showdown, Winner){
@@ -162,6 +159,7 @@ impl Hand{
     pub fn submit_action(&mut self, action: Action) -> Result<Option<HandResult>, String>{
 
         let street = self.streets.last_mut().unwrap();
+        let streetname = street.street;
 
         if !street.is_valid_action(action) {
             return Err("Invalid action".to_string());
@@ -170,17 +168,25 @@ impl Hand{
         // Apply the action
         let result = street.submit_action(action);
 
+        // Update the pot and stacks
+        self.update_pot_and_stacks();
+
         // Advance the hand to the next stage, if required.
         let ret_val: Result<Option<HandResult>, String> = match result{
             Ok(res) => match res{
                 ActionResult::BettingClosed => {
-                    if street.street == StreetName::River{
+                    if streetname == StreetName::River{
                         let (showdown, winner) = self.run_showdown();
+                        let (bb_new_stack, btn_new_stack) = match winner{
+                            Winner::ButtonWins => (0,0), // TODO
+                            Winner::BigBlindWins => (0,0), // TODO
+                            Winner::SplitPot => (self.bb_start_stack, self.btn_start_stack), // No change
+                        };
                         let hand_result = 
                             HandResult{showdown: Some(showdown), 
                                        winner, 
-                                       bb_next_hand_stack: self.bb_start_stack,
-                                       btn_next_hand_stack: self.btn_start_stack}; // Todo: adjust stacks
+                                       bb_next_hand_stack: bb_new_stack,
+                                       btn_next_hand_stack: btn_new_stack};
                         Ok(Some(hand_result))
                     } else {
                         self.goto_next_street();
@@ -195,16 +201,13 @@ impl Hand{
                     };
                     let res = HandResult{showdown: None, 
                               winner,
-                              bb_next_hand_stack: self.bb_start_stack,
+                              bb_next_hand_stack: self.bb_start_stack + (self.btn_start_stack - self.btn_stack),
                               btn_next_hand_stack: self.btn_start_stack};
                     Ok(Some(res))
                 },
             }
             Err(e) => return Err(e),
         };
-
-        // Update the pot and stacks
-        self.update_pot_and_stacks();
 
         ret_val
 

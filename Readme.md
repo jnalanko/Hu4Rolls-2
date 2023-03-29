@@ -6,6 +6,7 @@ TODO:
 * Update stacks at the end of the hand and deal the next hand
 * Send the state back to the players after every update
 * Handle All-ins
+* Returning uncalled bets to stack
 
 Known bugs:
 

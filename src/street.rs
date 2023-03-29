@@ -200,7 +200,7 @@ impl Street{
                 }
             },
             Action::Call(amount) => {
-                // Next step is dealt after a call unless we are before the flop
+                // Betting is closed after a call unless we are before the flop
                 // and the call is a limp from the button
                 if self.street == StreetName::Preflop && active_player == Position::Button && amount == self.min_open_raise{
                     // Limp from the button -> Betting is still open
@@ -213,9 +213,18 @@ impl Street{
 
         // Update stacks
         let (btn_added_chips, bb_added_chips, _, _) = self.get_street_status();
-        self.btn_stack = self.btn_start_stack - btn_added_chips;
-        self.bb_stack = self.bb_start_stack - bb_added_chips;
-
+        if let Action::Call(call_amount) = action{
+            // If the last action is a call, then both players add equally many chips to the pot.
+            // In particular, in the case of an all in, the call may be smaller than the
+            // raise of the opponent. In this case, the extra chips of the opponent are
+            // not added to the pot.
+            self.btn_stack = self.btn_start_stack - min(btn_added_chips, bb_added_chips);
+            self.bb_stack = self.bb_start_stack - min(btn_added_chips, bb_added_chips);
+        } else{
+            self.btn_stack = self.btn_start_stack - btn_added_chips;
+            self.bb_stack = self.bb_start_stack - bb_added_chips;
+        }
+    
         Ok(result)
 
     }
@@ -426,9 +435,9 @@ mod tests {
 
         let (btn_added_chips, bb_added_chips, _, _) = street.get_street_status();
         assert_eq!(btn_added_chips, 1000);
-        assert_eq!(bb_added_chips, 2000); // Returning the extra 1000 is not the responsibility of the street
+        assert_eq!(bb_added_chips, 1000);
         assert_eq!(street.btn_stack, 0);
-        assert_eq!(street.bb_stack, 0);
+        assert_eq!(street.bb_stack, 1000); // These chips are returned from the all in
 
     }
 
