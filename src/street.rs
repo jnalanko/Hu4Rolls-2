@@ -248,7 +248,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_preflop_raise_call(){
+    fn test_preflop_raise_raise_call(){
         let mut street = Street::new(StreetName::Preflop, 10, 1000, 2000);
 
         // Button's turn. Needs to post the small blind
