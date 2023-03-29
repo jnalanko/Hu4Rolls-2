@@ -254,4 +254,36 @@ mod tests{
 
     }
 
+    #[test]
+    fn test_showdown_winner(){
+
+        // Rig a deck to deal out AA and KK and 2 4 6 8 T on the board
+        let deck: Vec<Card> = cards!("2s 4h 6d 8d Ts Ah Ad Kc Ks").try_collect().unwrap();
+        let hand = Hand::new(deck, 500, 600, 5);
+        let mut game = Game{
+            current_hand: hand,
+            button_seat: 0,
+        };
+
+        game.submit_action(Action::PostBlind(5), 0).unwrap();
+        game.submit_action(Action::PostBlind(10), 1).unwrap();
+
+        game.submit_action(Action::Call(10), 0).unwrap();
+        game.submit_action(Action::Check, 1).unwrap();
+
+        game.submit_action(Action::Check, 1).unwrap();
+        game.submit_action(Action::Check, 0).unwrap();
+
+        game.submit_action(Action::Check, 1).unwrap();
+        game.submit_action(Action::Check, 0).unwrap();
+
+        game.submit_action(Action::Check, 1).unwrap();
+        game.submit_action(Action::Check, 0).unwrap();
+
+        // Now we should have a new hand with button and the bb reversed, with a win of 10 for the bb
+        assert_eq!(game.current_hand.btn_stack, 610);
+        assert_eq!(game.current_hand.bb_stack, 490);
+
+    }
+
 }
