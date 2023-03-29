@@ -1,5 +1,6 @@
 use poker::{cards, Card, EvalClass, Evaluator, Rank, Eval};
 use crate::street::{Action, ActionOption, ActionResult, Street, StreetName};
+use crate::common::Position;
 
 // This struct represents the state of a single hand of poker
 pub struct Hand{
@@ -23,8 +24,15 @@ pub struct Hand{
 }
 
 #[derive(Debug)]
-pub struct ShowdownResult{
-    winner: Winner,
+pub struct HandResult{
+    pub winner: Winner,
+    pub btn_next_hand_stack: u64,
+    pub bb_next_hand_stack: u64,
+    pub showdown: Option<Showdown>, // If someone folded, this is None
+}
+
+#[derive(Debug)]
+pub struct Showdown{
     btn_eval: Eval,
     bb_eval: Eval,
 }
@@ -70,7 +78,7 @@ impl Hand{
         hand
     }
 
-    pub fn run_showdown(&mut self) -> ShowdownResult{
+    pub fn run_showdown(&mut self) -> (Showdown, Winner){
 
         let eval = Evaluator::new();
 
@@ -85,22 +93,22 @@ impl Hand{
         dbg!(btn_hand_eval);
         dbg!(bb_hand_eval);
 
+        let showdown = Showdown{btn_eval: btn_hand_eval, bb_eval: bb_hand_eval};
+
         if btn_hand_eval.is_better_than(bb_hand_eval){
-            ShowdownResult{winner: Winner::ButtonWins, btn_eval: btn_hand_eval, bb_eval: bb_hand_eval}
+            (showdown, Winner::ButtonWins)
         } else if btn_hand_eval.is_worse_than(bb_hand_eval){
-            ShowdownResult{winner: Winner::BigBlindWins, btn_eval: btn_hand_eval, bb_eval: bb_hand_eval}
+            (showdown, Winner::BigBlindWins)
         } else {
-            ShowdownResult{winner: Winner::SplitPot, btn_eval: btn_hand_eval, bb_eval: bb_hand_eval}
+            (showdown, Winner::SplitPot)
         }
 
     }
 
-    pub fn goto_next_street(&mut self) -> Option<ShowdownResult>{
+    pub fn goto_next_street(&mut self){
 
         let street_name = self.streets.last().unwrap().street;
         let mut next_street_name = StreetName::Preflop;
-
-        let mut showdown_result: Option<ShowdownResult> = None;
 
         match street_name {
             StreetName::Preflop => {
@@ -118,16 +126,13 @@ impl Hand{
                 self.board_cards.push(self.deck.pop().unwrap());
             },
             StreetName::River => {
-                next_street_name = StreetName::End;
-                showdown_result = Some(self.run_showdown());
+                panic!("Can't go to next street on river");
             },
             StreetName::End => (),
             _ => panic!("Invalid street"),
         };
 
         self.streets.push(Street::new(next_street_name, self.sb_size*2, self.btn_stack, self.bb_stack));
-
-        showdown_result
     }
 
     pub fn update_pot_and_stacks(&mut self){
@@ -152,9 +157,9 @@ impl Hand{
     }
   
     // Returns Ok(None) if action was valid and hand did not finish yet
-    // Returns Ok(ShowdownResult) if action was valid and hand finished
+    // Returns Ok(HandResult) if action was valid and hand finished
     // Otherwise returns an error message as Err(String)
-    pub fn submit_action(&mut self, action: Action) -> Result<Option<ShowdownResult>, String>{
+    pub fn submit_action(&mut self, action: Action) -> Result<Option<HandResult>, String>{
 
         let street = self.streets.last_mut().unwrap();
 
@@ -166,10 +171,34 @@ impl Hand{
         let result = street.submit_action(action);
 
         // Advance the hand to the next stage, if required.
-        let ret_val: Result<Option<ShowdownResult>, String> = match result{
+        let ret_val: Result<Option<HandResult>, String> = match result{
             Ok(res) => match res{
-                ActionResult::BettingClosed => Ok(self.goto_next_street()), // Returns showdown if hand is finished
+                ActionResult::BettingClosed => {
+                    if street.street == StreetName::River{
+                        let (showdown, winner) = self.run_showdown();
+                        let hand_result = 
+                            HandResult{showdown: Some(showdown), 
+                                       winner, 
+                                       bb_next_hand_stack: self.bb_start_stack,
+                                       btn_next_hand_stack: self.btn_start_stack}; // Todo: adjust stacks
+                        Ok(Some(hand_result))
+                    } else {
+                        self.goto_next_street();
+                        Ok(None)
+                    }
+                },
                 ActionResult::BettingOpen => Ok(None),
+                ActionResult::Fold(player) => {
+                    let winner = match player{
+                        Position::Button => Winner::BigBlindWins,
+                        Position::BigBlind => Winner::ButtonWins,
+                    };
+                    let res = HandResult{showdown: None, 
+                              winner,
+                              bb_next_hand_stack: self.bb_start_stack,
+                              btn_next_hand_stack: self.btn_start_stack};
+                    Ok(Some(res))
+                },
             }
             Err(e) => return Err(e),
         };

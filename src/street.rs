@@ -37,6 +37,7 @@ pub enum ActionOption{
 pub enum ActionResult{
     BettingOpen,
     BettingClosed,
+    Fold(Position), // Player who folded
 }
 
 // This struct represents the state of a single betting round
@@ -192,7 +193,7 @@ impl Street{
 
         // Determine if this action closes the betting round
         match action{
-            Action::Fold => result = ActionResult::BettingClosed,
+            Action::Fold => result = ActionResult::Fold(active_player),
             Action::Check => {
                 if active_player == last_to_act{
                     result = ActionResult::BettingClosed;

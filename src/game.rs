@@ -1,6 +1,6 @@
 use crate::common::Position;
 use crate::street::{Action, ActionOption};
-use crate::hand::{Hand, ShowdownResult};
+use crate::hand::{Hand, HandResult};
 use serde::{Serialize, Deserialize};
 use poker::{Card};
 
@@ -105,9 +105,9 @@ impl Game{
 
         // Submit the action and return the response
         match self.current_hand.submit_action(action){
-            Ok(showdown) => {
-                match showdown{
-                    Some(res) => format!("Showdown: {:?}", res), // Showdown
+            Ok(hand_result) => {
+                match hand_result{
+                    Some(res) => format!("Hand result: {:?}", res), // Showdown
                     None => { // No showdown, but valid action
                         "{\"action_response\": \"ok\"}".to_string()
                     }
