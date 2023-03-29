@@ -305,6 +305,36 @@ mod tests {
     }
 
     #[test]
+    fn test_preflop_limp(){
+        let mut street = Street::new(StreetName::Preflop, 10, 1000, 2000);
+        assert!(street.submit_action(Action::PostBlind(5)).unwrap() == ActionResult::BettingOpen);
+        assert!(street.submit_action(Action::PostBlind(10)).unwrap() == ActionResult::BettingOpen);
+
+        // Button's turn. Can raise, call or fold
+        let actions = street.get_available_actions();
+        assert_eq!(actions.len(), 3);
+        assert!(actions.contains(&ActionOption::Call(10)));
+        assert!(actions.contains(&ActionOption::Raise(20, 1000)));
+        assert!(actions.contains(&ActionOption::Fold));
+
+        assert!(street.submit_action(Action::Call(10)).unwrap() == ActionResult::BettingOpen);
+
+        // Big blind's turn. Can check, raise, or fold
+        let actions = street.get_available_actions();
+        assert_eq!(actions.len(), 3);
+        assert!(actions.contains(&ActionOption::Check));
+        assert!(actions.contains(&ActionOption::Raise(20, 2000)));
+        assert!(actions.contains(&ActionOption::Fold));
+
+        assert!(street.submit_action(Action::Check).unwrap() == ActionResult::BettingClosed);
+        
+        // Check final status
+        let (btn_added_chips, bb_added_chips, _, _) = street.get_street_status();
+        assert_eq!(btn_added_chips, 10);
+        assert_eq!(bb_added_chips, 10);
+    }
+
+    #[test]
     fn test_bet_raise_all_in_call_on_flop(){
 
         // Sequence: bb bets 10, btn raises to 100, bb goes all in, btn calls
