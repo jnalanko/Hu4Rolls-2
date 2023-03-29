@@ -431,4 +431,24 @@ mod tests {
 
     }
 
+    #[test]
+    fn test_check_check_on_the_flop(){
+        let mut street = Street::new(StreetName::Flop, 10, 1000, 2000);
+
+        let actions = street.get_available_actions();
+        assert_eq!(actions.len(), 3);
+        assert!(actions.contains(&ActionOption::Check));
+        assert!(actions.contains(&ActionOption::Bet(10,2000)));
+        assert!(actions.contains(&ActionOption::Fold));
+
+        assert_eq!(street.submit_action(Action::Check).unwrap(), ActionResult::BettingOpen);
+        assert_eq!(street.submit_action(Action::Check).unwrap(), ActionResult::BettingClosed);
+
+        let (btn_added_chips, bb_added_chips, _, _) = street.get_street_status();
+        assert_eq!(btn_added_chips, 0);
+        assert_eq!(bb_added_chips, 0);
+        assert_eq!(street.btn_stack, 1000);
+        assert_eq!(street.bb_stack, 2000);
+    }
+
 }
