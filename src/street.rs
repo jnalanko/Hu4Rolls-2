@@ -132,14 +132,6 @@ impl Street{
     // Returns the valid actions for the player in turn.
     // For bets, raises, and allins, return the minimum and maximum amounts.
     pub fn get_available_actions(&self) -> Vec<ActionOption>{
-
-        if self.street == StreetName::Preflop{
-            match self.actions.len(){
-                0 => {return vec![ActionOption::PostBlind(self.min_open_raise/2)];}, // Small blind
-                1 => {return vec![ActionOption::PostBlind(self.min_open_raise)];}, // Big blind
-                _ => (),
-            }
-        }
         
         let (btn_added_chips,bb_added_chips,minimum_raise_size, active_player) = self.get_street_status();
 
@@ -147,6 +139,28 @@ impl Street{
             Position::Button => self.btn_stack,
             Position::BigBlind => self.bb_stack,
         };
+
+        if self.street == StreetName::Preflop{
+            match self.actions.len(){
+                0 => { // Next action must be posting the small blind
+                    let sb_size = self.min_open_raise/2;
+                    if active_player_stack >= sb_size{ // Can afford to post small blind
+                        return vec![ActionOption::PostBlind(sb_size)];
+                    } else { // Can't afford to post small blind
+                        return vec![]; // Can't do anything
+                    }
+                }, 
+                1 => { // Next action must be posting the big blind
+                    let bb_size = self.min_open_raise;
+                    if active_player_stack >= bb_size{ // Can afford to post big blind
+                        return vec![ActionOption::PostBlind(self.min_open_raise)];
+                    } else { // Can't afford to post big blind
+                        return vec![]; // Can't do anything
+                    }
+                },
+                _ => (), // Blinds have been posted, continue with normal logic
+            }
+        }
 
         let active_player_initial_stack = match active_player{
             Position::Button => self.btn_start_stack,
@@ -235,7 +249,7 @@ impl Street{
             Action::Fold => available_actions.contains(&ActionOption::Fold),
             Action::Check => available_actions.contains(&ActionOption::Check),
             Action::Call(amount) => available_actions.contains(&ActionOption::Call(amount)),
-            Action::PostBlind(_) => true, // We assume blind posting are always valid
+            Action::PostBlind(amount) => available_actions.contains(&ActionOption::PostBlind(amount)),
             Action::Bet(amount) => {
                 available_actions.iter().any(|x| match x{
                     ActionOption::Bet(minimum, maximum) => amount >= *minimum && amount <= *maximum,
