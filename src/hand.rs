@@ -1,6 +1,6 @@
 use poker::{cards, Card, EvalClass, Evaluator, Rank, Eval};
 use crate::street::{Action, ActionOption, ActionResult, Street, StreetName};
-use crate::common::Position;
+use crate::common::{Position, other_player};
 
 // This struct represents the state of a single hand of poker
 pub struct Hand{
@@ -25,7 +25,7 @@ pub struct Hand{
 
 #[derive(Debug)]
 pub struct HandResult{
-    pub winner: Winner,
+    pub winner: Option<Position>, // None means split pot
     pub btn_next_hand_stack: u64,
     pub bb_next_hand_stack: u64,
     pub showdown: Option<Showdown>, // If someone folded, this is None
@@ -35,13 +35,6 @@ pub struct HandResult{
 pub struct Showdown{
     btn_eval: Eval,
     bb_eval: Eval,
-}
-
-#[derive(Debug)]
-pub enum Winner{
-    ButtonWins,
-    BigBlindWins,
-    SplitPot,
 }
 
 impl Hand{
@@ -75,7 +68,8 @@ impl Hand{
 
     }
 
-    pub fn run_showdown(&mut self) -> (Showdown, Winner){
+    // Returns Showdown and winner position. If the pot is split, then the winner position is None
+    pub fn run_showdown(&mut self) -> (Showdown, Option<Position>){
 
         let eval = Evaluator::new();
 
@@ -93,11 +87,11 @@ impl Hand{
         let showdown = Showdown{btn_eval: btn_hand_eval, bb_eval: bb_hand_eval};
 
         if btn_hand_eval.is_better_than(bb_hand_eval){
-            (showdown, Winner::ButtonWins)
+            (showdown, Some(Position::Button))
         } else if btn_hand_eval.is_worse_than(bb_hand_eval){
-            (showdown, Winner::BigBlindWins)
+            (showdown, Some(Position::BigBlind))
         } else {
-            (showdown, Winner::SplitPot)
+            (showdown, None)
         }
 
     }
@@ -183,9 +177,9 @@ impl Hand{
                         let bb_added = self.bb_start_stack - self.bb_stack;
                         assert!(btn_added == bb_added);
                         let (bb_new_stack, btn_new_stack) = match winner{
-                            Winner::ButtonWins => (self.btn_stack + bb_added, self.bb_stack - bb_added),
-                            Winner::BigBlindWins => (self.btn_stack - btn_added, self.bb_stack + btn_added),
-                            Winner::SplitPot => (self.bb_start_stack, self.btn_start_stack), // No change
+                            Some(Position::Button) => (self.btn_stack + bb_added, self.bb_stack - bb_added),
+                            Some(Position::BigBlind) => (self.btn_stack - btn_added, self.bb_stack + btn_added),
+                            None => (self.bb_start_stack, self.btn_start_stack), // Split pot -> No change
                         };
 
                         // Return result
@@ -202,12 +196,8 @@ impl Hand{
                 },
                 ActionResult::BettingOpen => Ok(None),
                 ActionResult::Fold(player) => {
-                    let winner = match player{
-                        Position::Button => Winner::BigBlindWins,
-                        Position::BigBlind => Winner::ButtonWins,
-                    };
                     let res = HandResult{showdown: None, 
-                              winner,
+                              winner: Some(other_player(player)),
                               bb_next_hand_stack: self.bb_start_stack + (self.btn_start_stack - self.btn_stack),
                               btn_next_hand_stack: self.btn_start_stack};
                     Ok(Some(res))

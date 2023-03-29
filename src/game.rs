@@ -146,4 +146,19 @@ mod tests{
         assert_eq!(state.active_player, Position::Button);
     }
 
+    #[test]
+    fn fold_immediately(){
+        let mut game = Game::new_with_stacks_and_sb(500, 600, 5);
+        assert!(game.current_hand.submit_action(Action::PostBlind(5)).is_ok());
+        assert!(game.current_hand.submit_action(Action::PostBlind(10)).is_ok());
+
+        let res = game.current_hand.submit_action(Action::Fold).unwrap().unwrap();
+        /*match res.winner{
+            Winner::BigBlindWins => assert_eq!(res.pot, 5 + 10 + 500 + 600),
+            Winner::BigBlind => assert_eq!(res.pot, 5 + 10),
+            _ => assert!(false),
+        }*/
+        
+    }
+
 }
