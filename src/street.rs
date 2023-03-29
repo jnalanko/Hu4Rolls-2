@@ -27,11 +27,13 @@ pub enum StreetName{
 pub enum ActionOption{
     Fold,
     Check,
+    PostBlind(u64),
     Call(u64), // Call *to* not *by*
     Bet(u64,u64), // Min bet, max bet. Bet *to*, not *by*
     Raise(u64,u64), // Min bet, max bet. Raise *to*, not *by*
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ActionResult{
     BettingOpen,
     BettingClosed,
@@ -120,6 +122,14 @@ impl Street{
     // Returns the valid actions for the player in turn.
     // For bets, raises, and allins, return the minimum and maximum amounts.
     pub fn get_available_actions(&self) -> Vec<ActionOption>{
+
+        if self.street == StreetName::Preflop{
+            match self.actions.len(){
+                0 => {return vec![ActionOption::PostBlind(self.min_open_raise/2)];}, // Small blind
+                1 => {return vec![ActionOption::PostBlind(self.min_open_raise)];}, // Big blind
+                _ => (),
+            }
+        }
         
         let (btn_added_chips,bb_added_chips,minimum_raise_size, active_player) = self.get_street_status();
 
@@ -238,7 +248,64 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_bet_raise_all_in_call(){
+    fn test_preflop_raise_call(){
+        let mut street = Street::new(StreetName::Preflop, 10, 1000, 2000);
+
+        // Button's turn. Needs to post the small blind
+        let actions = street.get_available_actions();
+
+        assert_eq!(actions.len(), 1);
+        assert!(actions.contains(&ActionOption::PostBlind(5)));
+
+        assert!(street.submit_action(Action::PostBlind(5)).unwrap() == ActionResult::BettingOpen);
+
+        // Big blind's turn. Needs to post the big blind
+        let actions = street.get_available_actions();
+
+        assert_eq!(actions.len(), 1);
+        assert!(actions.contains(&ActionOption::PostBlind(10)));
+
+        assert!(street.submit_action(Action::PostBlind(10)).unwrap() == ActionResult::BettingOpen);
+
+        // Button's turn. Can raise, call or fold
+        let actions = street.get_available_actions();
+        assert_eq!(actions.len(), 3);
+        assert!(actions.contains(&ActionOption::Call(10)));
+        assert!(actions.contains(&ActionOption::Raise(20, 1000)));
+        assert!(actions.contains(&ActionOption::Fold));
+
+        assert!(street.submit_action(Action::Raise(50)).unwrap() == ActionResult::BettingOpen);
+
+        // Big blind's turn. Can raise, call or fold
+
+        let actions = street.get_available_actions();
+        assert_eq!(actions.len(), 3);
+        assert!(actions.contains(&ActionOption::Call(50)));
+        assert!(actions.contains(&ActionOption::Raise(90, 2000)));
+        assert!(actions.contains(&ActionOption::Fold));
+
+        assert!(street.submit_action(Action::Raise(200)).unwrap() == ActionResult::BettingOpen);
+
+        // Button's turn. Can raise, call or fold
+
+        let actions = street.get_available_actions();
+        assert_eq!(actions.len(), 3);
+        assert!(actions.contains(&ActionOption::Call(200)));
+        assert!(actions.contains(&ActionOption::Raise(350, 1000)));
+        assert!(actions.contains(&ActionOption::Fold));
+
+        assert!(street.submit_action(Action::Call(200)).unwrap() == ActionResult::BettingClosed);
+
+        // Check final status
+        let (btn_added_chips, bb_added_chips, _, _) = street.get_street_status();
+        assert_eq!(btn_added_chips, 200);
+        assert_eq!(bb_added_chips, 200);
+
+
+    }
+
+    #[test]
+    fn test_bet_raise_all_in_call_on_flop(){
 
         // Sequence: bb bets 10, btn raises to 100, bb goes all in, btn calls
 
