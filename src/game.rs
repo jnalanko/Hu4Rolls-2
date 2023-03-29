@@ -204,7 +204,7 @@ mod tests{
         assert_eq!(state.button_seat, 1); // The button of the previous hand is now the big blind
         assert_eq!(state.sb_size, 5);
         assert_eq!(state.bb_size, 10);
-        assert_eq!(state.bb_hole_cards, None); // Opponent's cards are not revealed
+        assert_eq!(state.btn_hole_cards, None); // Opponent's cards are not revealed
         assert_eq!(state.board_cards.len(), 0);
         assert_eq!(state.active_player, Position::Button);
     }
