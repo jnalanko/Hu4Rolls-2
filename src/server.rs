@@ -44,6 +44,24 @@ async fn main() {
 
     let health_route = warp::path!("health").and_then(handler::health_handler);
 
+    let cors = warp::cors()
+    .allow_any_origin()
+    .allow_headers(vec![
+        "Content-Type",
+        "Content-Length",
+        "ETag",
+        "Date",
+        "Connection",
+    ])
+    .allow_methods(vec!["POST", "GET"])
+    .expose_headers(vec![
+        "Content-Type",
+        "Content-Length",
+        "ETag",
+        "Date",
+        "Connection",
+    ]);
+
     let join = warp::path("join");
     let join_routes = join
         .and(warp::post())
@@ -69,7 +87,7 @@ async fn main() {
         .or(create_game_routes)
         .or(join_routes)
         .or(ws_route)
-        .with(warp::cors().allow_any_origin());
+        .with(cors);
 
     warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;
 }
