@@ -52,12 +52,19 @@ async fn client_msg(websocket_id: &str, game_id: u64, seat: u8, msg: Message, cl
     };
 
     let mut locked = clients.write().await;
+
+    // Find the game and process the user command for the game
     if let Some(v) = locked.get_mut(websocket_id) {
         if let Some(sender) = &v.sender {
             match games.write().await.get_mut(&game_id){ // Find the game
                 Some(game) => { // Game found
-                    let answer = game.process_user_command(&message.to_owned(), seat);
-                    let _ = sender.send(Ok(Message::text(answer)));
+                    if message == "state" {
+                        let state = game.get_state_json(seat);
+                        let _ = sender.send(Ok(Message::text(state)));
+                    } else {
+                        let answer = game.process_user_command(&message.to_owned(), seat);
+                        let _ = sender.send(Ok(Message::text(answer)));
+                    }
                 },
                 None => { // Game not found
                     let _ = sender.send(Ok(Message::text("Game not found")));
@@ -65,4 +72,5 @@ async fn client_msg(websocket_id: &str, game_id: u64, seat: u8, msg: Message, cl
             }
         }
     }
+
 }
