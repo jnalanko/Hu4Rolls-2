@@ -52,6 +52,18 @@ impl Game{
 
         let board: Vec<String> = self.current_hand.board_cards.iter().map(|card| card.rank_suit_string()).collect();
         
+        let active_seat = match button_seat{
+            0 => match active_player{
+                Position::Button => 0,
+                Position::BigBlind => 1,
+            },
+            1 => match active_player{
+                Position::Button => 1,
+                Position::BigBlind => 0,
+            },
+            _ => panic!("Invalid button seat"),
+        };
+
         let gamestate = GameState{
             pot_size: self.current_hand.pot,
             btn_stack: self.current_hand.btn_stack,
@@ -70,7 +82,10 @@ impl Game{
                 _ => Some((bb_card1, bb_card2)),
             },
             board_cards: board,
-            available_actions: self.current_hand.streets.last().unwrap().get_available_actions(),
+            available_actions: match for_seat == active_seat {
+                true => self.current_hand.streets.last().unwrap().get_available_actions(),
+                false => vec![] // Not our turn to act
+            },
             active_player,
         };
 
