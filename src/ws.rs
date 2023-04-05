@@ -43,12 +43,11 @@ pub async fn client_connection(ws: WebSocket, id: String, clients: MyClients, mu
     println!("{} disconnected", id);
 }
 
-async fn broadcast_state(clients: &MyClients, game: &Game){
+async fn broadcast_message(clients: &MyClients, message: &String){
     
     for (_, client) in clients.write().await.iter_mut() {
         if let Some(sender) = &client.sender {
-            let state = game.get_state_json(client.seat as u8);
-            let _ = sender.send(Ok(Message::text(state)));
+            let _ = sender.send(Ok(Message::text(message)));
         }
     }
 }
@@ -72,10 +71,19 @@ async fn client_msg(websocket_id: &str, game_id: u64, seat: u8, msg: Message, cl
                         let state = game.get_state_json(seat);
                         let _ = sender.send(Ok(Message::text(state)));
                     } else {
-                        let answer = game.process_user_command(&message.to_owned(), seat);
+                        let (answer, hand_result) = game.process_user_command(&message.to_owned(), seat);
                         let _ = sender.send(Ok(Message::text(answer)));
+
                         drop(locked); // Drop the write lock to be able to broadcast
-                        broadcast_state(clients, game).await;
+
+                        // Broadcast state to all clients
+                        let state = game.get_state_json(seat as u8);
+                        broadcast_message(clients, &state).await;
+
+                        // If the game is over, broadcase the showdown result to al lclient
+                        if let Some(hand_result) = hand_result {
+                            broadcast_message(clients, &serde_json::to_string(&hand_result).unwrap()).await;
+                        }
                     }
                 },
                 None => { // Game not found

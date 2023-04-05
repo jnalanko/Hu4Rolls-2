@@ -2,6 +2,7 @@ use poker::{cards, Card, EvalClass, Evaluator, Rank, Eval};
 use serde::{Serialize, Deserialize};
 use crate::street::{Action, ActionOption, ActionResult, Street, StreetName};
 use crate::common::{Position, other_player};
+use serde::ser::SerializeStruct;
 
 // This struct represents the state of a single hand of poker
 pub struct Hand{
@@ -24,7 +25,7 @@ pub struct Hand{
 
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct HandResult{
     pub winner: Option<Position>, // None means split pot
     pub btn_next_hand_stack: u64,
@@ -38,6 +39,23 @@ pub struct Showdown{
     bb_eval: Eval,
 }
 
+// Implement serialize for Showdown. We need to implement this manually because
+// the Eval struct doesn't implement Serialize
+impl serde::Serialize for Showdown {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+
+        let btn_eval_string = format!("{:?}", self.btn_eval);
+        let bb_eval_string = format!("{:?}", self.bb_eval);
+
+        let mut state = serializer.serialize_struct("Showdown", 2)?;
+        state.serialize_field("btn_eval", &btn_eval_string)?;
+        state.serialize_field("bb_eval", &bb_eval_string)?;
+        state.end()
+    }
+}
 impl Hand{
 
     // Assumes that both players have enough chips to post blinds

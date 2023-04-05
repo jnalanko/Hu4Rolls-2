@@ -115,23 +115,23 @@ impl Game{
         }
     }
 
-    // Takes a user command and returns a JSON response to the user
-    pub fn process_user_command(&mut self, input: &String, from_seat: u8) -> String{
+    // Takes a user command and returns a JSON response to the user, and a HandResult if the hand is over
+    pub fn process_user_command(&mut self, input: &String, from_seat: u8) -> (String, Option<HandResult>){
 
         // Deserialize input as Action
         let action: Action = match serde_json::from_str(input){
             Ok(action) => action,
             Err(e) => {
-                return format!("{{\"action_response\": \"{}\"}}", e);
+                return (format!("{{\"action_response\": \"{}\"}}", e), None);
             }
         };
 
         match self.submit_action(action , from_seat){
             Ok(hand_result) => {
-                return "{\"action_response\": \"ok\"}".to_string();
+                return ("{\"action_response\": \"ok\"}".to_string(), hand_result);
             },
             Err(e) => {
-                return format!("{{\"action_response\": \"{}\"}}", e);
+                return (format!("{{\"action_response\": \"{}\"}}", e), None);
             }
         }
     }
@@ -179,6 +179,7 @@ mod tests{
 
     #[test]
     fn test_finishing_a_hand_and_dealing_the_next_one(){
+
         let mut game = Game::new_with_stacks_and_sb(500, 600, 5);
         assert!(game.current_hand.submit_action(Action::PostBlind(5)).is_ok());
         assert!(game.current_hand.submit_action(Action::PostBlind(10)).is_ok());
@@ -187,9 +188,9 @@ mod tests{
         dbg!(&state);
         // Button raises
         //assert!(game.current_hand.submit_action(Action::Raise(40)).is_ok());
-        assert!(game.process_user_command(&serde_json::to_string(&Action::Raise(40)).unwrap(), 0) == "{\"action_response\": \"ok\"}");
+        assert!(game.process_user_command(&serde_json::to_string(&Action::Raise(40)).unwrap(), 0).0 == "{\"action_response\": \"ok\"}");
         // BB folds
-        assert!(game.process_user_command(&serde_json::to_string(&Action::Fold).unwrap(), 1) == "{\"action_response\": \"ok\"}");
+        assert!(game.process_user_command(&serde_json::to_string(&Action::Fold).unwrap(), 1).0 == "{\"action_response\": \"ok\"}");
 
         // The first hand should be over now
 
