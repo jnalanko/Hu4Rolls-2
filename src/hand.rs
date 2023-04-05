@@ -37,10 +37,12 @@ pub struct HandResult{
 pub struct Showdown{
     btn_eval: Eval,
     bb_eval: Eval,
+    btn_hole_cards: (Card, Card),
+    bb_hole_cards: (Card, Card),
 }
 
 // Implement serialize for Showdown. We need to implement this manually because
-// the Eval struct doesn't implement Serialize
+// the Eval and Card structs do not implement Serialize
 impl serde::Serialize for Showdown {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -50,9 +52,14 @@ impl serde::Serialize for Showdown {
         let btn_eval_string = format!("{:?}", self.btn_eval);
         let bb_eval_string = format!("{:?}", self.bb_eval);
 
+        let btn_hole_cards_string = format!("{:?}", self.btn_hole_cards);
+        let bb_hole_cards_string = format!("{:?}", self.bb_hole_cards);
+
         let mut state = serializer.serialize_struct("Showdown", 2)?;
         state.serialize_field("btn_eval", &btn_eval_string)?;
         state.serialize_field("bb_eval", &bb_eval_string)?;
+        state.serialize_field("btn_hole_cards", &btn_hole_cards_string)?;
+        state.serialize_field("bb_hole_cards", &bb_hole_cards_string)?;
         state.end()
     }
 }
@@ -100,7 +107,11 @@ impl Hand{
         dbg!(btn_hand_eval);
         dbg!(bb_hand_eval);
 
-        let showdown = Showdown{btn_eval: btn_hand_eval, bb_eval: bb_hand_eval};
+        let showdown = 
+            Showdown{btn_eval: btn_hand_eval, 
+                     bb_eval: bb_hand_eval,
+                     btn_hole_cards: self.btn_hole_cards,
+                     bb_hole_cards: self.bb_hole_cards};
 
         if btn_hand_eval.is_better_than(bb_hand_eval){
             (showdown, Some(Position::Button))
