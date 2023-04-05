@@ -4,7 +4,7 @@ use futures::{FutureExt, StreamExt};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use warp::ws::{Message, WebSocket};
-
+use crate::Game;
 use crate::Games;
 
 // Create a new task to handle message from/to the client
@@ -43,6 +43,16 @@ pub async fn client_connection(ws: WebSocket, id: String, clients: MyClients, mu
     println!("{} disconnected", id);
 }
 
+async fn broadcast_state(clients: &MyClients, game: &Game){
+    
+    for (_, client) in clients.write().await.iter_mut() {
+        if let Some(sender) = &client.sender {
+            let state = game.get_state_json(client.seat as u8);
+            let _ = sender.send(Ok(Message::text(state)));
+        }
+    }
+}
+
 async fn client_msg(websocket_id: &str, game_id: u64, seat: u8, msg: Message, clients: &MyClients, games: &Games) {
 
     println!("received message from {}: {:?}", websocket_id, msg);
@@ -64,6 +74,8 @@ async fn client_msg(websocket_id: &str, game_id: u64, seat: u8, msg: Message, cl
                     } else {
                         let answer = game.process_user_command(&message.to_owned(), seat);
                         let _ = sender.send(Ok(Message::text(answer)));
+                        drop(locked); // Drop the write lock to be able to broadcast
+                        broadcast_state(clients, game).await;
                     }
                 },
                 None => { // Game not found

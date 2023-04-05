@@ -20,13 +20,6 @@ use game::Game;
 type Games = Arc<RwLock<HashMap<u64, Game>>>;
 
 #[derive(Debug, Clone)]
-pub struct Client {
-    pub user_id: usize,
-    pub topics: Vec<String>,
-    pub sender: Option<mpsc::UnboundedSender<std::result::Result<Message, warp::Error>>>,
-}
-
-#[derive(Debug, Clone)]
 pub struct MyClient {
     pub game_id: u64,
     pub seat: u64,
