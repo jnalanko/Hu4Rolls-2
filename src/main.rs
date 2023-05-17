@@ -10,6 +10,7 @@ use street::{Action, ActionOption};
 use hand::Hand;
 
 fn play() {
+
     let stdin = std::io::stdin();
     let deck: Vec<Card> = Card::generate_shuffled_deck().to_vec();
     let mut hand = Hand::new(deck, 1000, 1000, 5);

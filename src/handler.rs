@@ -36,6 +36,7 @@ pub async fn ws_handler(ws: warp::ws::Ws, id: String, clients: MyClients, games:
 }
 
 pub async fn create_game_handler(body: CreateGameRequest, games: Games) -> Result<impl Reply> {
+
     let id = body.id;
     let sb_size = body.sb_size;
     let stacks = body.stacks;

@@ -52,14 +52,14 @@ impl serde::Serialize for Showdown {
         let btn_eval_string = format!("{:?}", self.btn_eval);
         let bb_eval_string = format!("{:?}", self.bb_eval);
 
-        let btn_hole_cards_string = format!("{:?}", self.btn_hole_cards);
-        let bb_hole_cards_string = format!("{:?}", self.bb_hole_cards);
+        let btn_hole_cards = (self.btn_hole_cards.0.rank_suit_string(), self.btn_hole_cards.1.rank_suit_string());
+        let bb_hole_cards = (self.bb_hole_cards.0.rank_suit_string(), self.bb_hole_cards.1.rank_suit_string());
 
         let mut state = serializer.serialize_struct("Showdown", 2)?;
         state.serialize_field("btn_eval", &btn_eval_string)?;
         state.serialize_field("bb_eval", &bb_eval_string)?;
-        state.serialize_field("btn_hole_cards", &btn_hole_cards_string)?;
-        state.serialize_field("bb_hole_cards", &bb_hole_cards_string)?;
+        state.serialize_field("btn_hole_cards", &btn_hole_cards)?;
+        state.serialize_field("bb_hole_cards", &bb_hole_cards)?;
         state.end()
     }
 }
@@ -247,3 +247,4 @@ impl Hand{
     }
 
 }
+

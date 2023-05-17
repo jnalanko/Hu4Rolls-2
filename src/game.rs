@@ -41,6 +41,7 @@ impl Game{
     }
 
     pub fn get_state_json(&self, for_seat: u8) -> String{
+
         let (btn_added_chips, bb_added_chips, minimum_raise_size, active_player) = self.current_hand.streets.last().unwrap().get_street_status();
         let button_seat = self.button_seat;
 
