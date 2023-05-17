@@ -28,8 +28,8 @@ pub struct Hand{
 #[derive(Debug, Serialize)]
 pub struct HandResult{
     pub winner: Option<Position>, // None means split pot
-    pub btn_next_hand_stack: u64,
-    pub bb_next_hand_stack: u64,
+    pub btn_stack: u64,
+    pub bb_stack: u64,
     pub showdown: Option<Showdown>, // If someone folded, this is None
 }
 
@@ -219,8 +219,8 @@ impl Hand{
                         let hand_result = 
                             HandResult{showdown: Some(showdown), 
                                        winner, 
-                                       bb_next_hand_stack: bb_new_stack,
-                                       btn_next_hand_stack: btn_new_stack};
+                                       bb_stack: bb_new_stack,
+                                       btn_stack: btn_new_stack};
                         Ok(Some(hand_result))
                     } else {
                         self.goto_next_street();
@@ -234,8 +234,8 @@ impl Hand{
 
                     let res = HandResult{showdown: None, 
                               winner: Some(winner),
-                              bb_next_hand_stack: bb_new_stack,
-                              btn_next_hand_stack: btn_new_stack};
+                              bb_stack: bb_new_stack,
+                              btn_stack: btn_new_stack};
                     Ok(Some(res))
                 },
             }

@@ -118,7 +118,7 @@ impl Game{
                         let deck: Vec<Card> = Card::generate_shuffled_deck().to_vec();
 
                         // New hand: swap stacks between button and sb
-                        self.current_hand = Hand::new(deck, res.bb_next_hand_stack, res.btn_next_hand_stack, self.current_hand.sb_size);
+                        self.current_hand = Hand::new(deck, res.bb_stack, res.btn_stack, self.current_hand.sb_size);
                         self.button_seat = 1 - self.button_seat; // Switch who is on the button
                         Ok(Some(res))
                     }
@@ -189,8 +189,8 @@ mod tests{
         let res = game.current_hand.submit_action(Action::Fold).unwrap().unwrap();
         assert_eq!(res.winner, Some(Position::BigBlind));
         assert!(res.showdown.is_none());
-        assert_eq!(res.bb_next_hand_stack, 600 + 5);
-        assert_eq!(res.btn_next_hand_stack, 500 - 5);
+        assert_eq!(res.bb_stack, 600 + 5);
+        assert_eq!(res.btn_stack, 500 - 5);
     }
 
     #[test]
